@@ -6,6 +6,10 @@ st.set_page_config(page_title="OPP Finance Tracker", layout="wide")
 st.sidebar.title("📘 OPP Finance Tracker")
 page = st.sidebar.radio("Navigate", ["Dashboard", "Log Entry", "View Entries", "Receipts", "Data Export"])
 
+# TEST: Confirm app is rendering and the page is being selected
+st.write("✅ App loaded")
+st.write("📂 Page selected:", page)
+
 if page == "Dashboard":
     dashboard.show()
 elif page == "Log Entry":
