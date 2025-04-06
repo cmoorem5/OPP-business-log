@@ -22,6 +22,14 @@ def save_uploaded_file(uploaded_file, folder="receipts"):
 income_df = load_excel_data("2025 OPP Income")
 expenses_df = load_excel_data("2025 OPP Expenses")
 
+# --- Convert Amounts to Numeric ---
+income_df["Income Amount"] = pd.to_numeric(income_df["Income Amount"], errors="coerce")
+expenses_df["Amount"] = pd.to_numeric(expenses_df["Amount"], errors="coerce")
+
+# Optional: Drop rows with NaN in amount fields
+income_df = income_df.dropna(subset=["Income Amount"])
+expenses_df = expenses_df.dropna(subset=["Amount"])
+
 # --- Sidebar Navigation ---
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", ["Dashboard", "Log Entry", "View Entries", "Receipts", "Data Export"])
