@@ -1,5 +1,5 @@
 import streamlit as st
-from pages import dashboard, log_entry, view_entries, receipts, export
+from features import dashboard, log_entry, view_entries, receipts, export
 
 st.set_page_config(page_title="OPP Finance Tracker", layout="wide")
 
@@ -8,7 +8,6 @@ page = st.sidebar.radio("Navigate", ["Dashboard", "Log Entry", "View Entries", "
 
 # Debug info
 st.write("DEBUG: App loaded. Selected page:", page)
-st.write("DEBUG: dashboard is", dashboard)
 
 if page == "Dashboard":
     dashboard.show()
