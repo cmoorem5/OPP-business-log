@@ -1,5 +1,6 @@
 import streamlit as st
 
 def show():
-    st.markdown("## 📸 Receipts Page")
-    st.write("This is where you will upload and view your receipts.")
+    st.write("DEBUG: Receipts page loaded!")
+    st.markdown("## Receipts")
+    st.write("This is the receipts page. It should display content here.")

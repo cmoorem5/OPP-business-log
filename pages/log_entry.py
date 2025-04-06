@@ -1,5 +1,6 @@
 import streamlit as st
 
 def show():
-    st.markdown("## 📝 Log Entry Page")
-    st.write("This is where you will log new income or expense entries.")
+    st.write("DEBUG: Log Entry page loaded!")
+    st.markdown("## Log Entry")
+    st.write("This is the log entry page. It should display content here.")

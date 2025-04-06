@@ -1,5 +1,6 @@
 import streamlit as st
 
 def show():
-    st.markdown("## 📤 Export Page")
-    st.write("You can download your data from here in CSV format.")
+    st.write("DEBUG: Export page loaded!")
+    st.markdown("## Export Data")
+    st.write("This is the export data page. It should display content here.")
