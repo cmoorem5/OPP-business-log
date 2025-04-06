@@ -14,7 +14,6 @@ def show():
         source = st.text_input("Income Source")
         rental_dates = st.text_input("Rental Dates (optional)")
     else:
-        # Load dynamic purchaser list from Excel sheet "Purchasers"
         purchasers_df = load_excel_data("Purchasers")
         purchaser_list = purchasers_df["Purchaser"].dropna().unique().tolist()
         purchaser = st.selectbox("Purchaser", purchaser_list + ["Other"])
