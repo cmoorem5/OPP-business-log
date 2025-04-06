@@ -14,10 +14,13 @@ def show():
         source = st.text_input("Income Source")
         rental_dates = st.text_input("Rental Dates (optional)")
     else:
-        purchaser_options = ["JM JetBlue", "JB C1417", "OPP JetBlue", "Other"]
-        purchaser = st.selectbox("Purchaser", purchaser_options)
+        # Load dynamic purchaser list from Excel sheet "Purchasers"
+        purchasers_df = load_excel_data("Purchasers")
+        purchaser_list = purchasers_df["Purchaser"].dropna().unique().tolist()
+        purchaser = st.selectbox("Purchaser", purchaser_list + ["Other"])
         if purchaser == "Other":
             purchaser = st.text_input("Enter Purchaser Name")
+
         expenses_df = load_excel_data("2025 OPP Expenses")
         categories = expenses_df["Category"].dropna().unique() if "Category" in expenses_df.columns else []
         category = st.selectbox("Category", categories if len(categories) else ["General"])
