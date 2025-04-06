@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 from utils.data_loader import load_excel_data
+import calendar
 
 def show():
     st.markdown("## 📊 Dashboard Overview")
@@ -24,7 +25,9 @@ def show():
     income_by_month = income_df.groupby("Month")["Income Amount"].sum()
     expenses_by_month = expenses_df.groupby("Month")["Amount"].sum()
 
-    months = sorted(set(income_by_month.index).union(set(expenses_by_month.index)))
+    month_order = list(calendar.month_name)[1:]  # Jan to Dec
+    months = [m for m in month_order if m in income_by_month.index or m in expenses_by_month.index]
+
     income_values = [income_by_month.get(month, 0) for month in months]
     expense_values = [expenses_by_month.get(month, 0) for month in months]
 
