@@ -6,8 +6,20 @@ st.set_page_config(page_title="OPP Finance Tracker", layout="wide")
 st.sidebar.title("📘 OPP Finance Tracker")
 page = st.sidebar.radio("Navigate", ["Dashboard", "Log Entry", "View Entries", "Receipts", "Data Export"])
 
-# Debug info
-st.write("DEBUG: App loaded. Selected page:", page)
+# Version history
+with st.sidebar.expander("🕒 Version History"):
+    st.markdown("""
+    **v1.0.0** – Modular base app complete  
+    - Dashboard with income/expenses and graph  
+    - Log Entry form UI  
+    - View & Export data  
+    - Structure uses `features/` folder for pages
+
+    **v1.1.0-dev** – Coming Soon  
+    - Save entries to Google Sheets  
+    - Receipt file storage  
+    - Visual filters & date range tools
+    """)
 
 if page == "Dashboard":
     dashboard.show()
