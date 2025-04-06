@@ -11,5 +11,3 @@ def show():
     else:
         df = load_excel_data("2025 OPP Expenses")
         st.dataframe(df, use_container_width=True)
-
-    st.markdown("✅ Use filters and column sorting above to analyze your data.")

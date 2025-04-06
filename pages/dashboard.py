@@ -25,7 +25,7 @@ def show():
     income_by_month = income_df.groupby("Month")["Income Amount"].sum()
     expenses_by_month = expenses_df.groupby("Month")["Amount"].sum()
 
-    month_order = list(calendar.month_name)[1:]  # Jan to Dec
+    month_order = list(calendar.month_name)[1:]
     months = [m for m in month_order if m in income_by_month.index or m in expenses_by_month.index]
 
     income_values = [income_by_month.get(month, 0) for month in months]
@@ -36,6 +36,3 @@ def show():
     fig.add_trace(go.Bar(x=months, y=expense_values, name="Expenses", marker_color="red"))
     fig.update_layout(barmode="group", title="Monthly Income vs Expenses", xaxis_title="Month", yaxis_title="Amount ($)")
     st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("---")
-    st.markdown("✅ This dashboard updates automatically based on your spreadsheet.")
