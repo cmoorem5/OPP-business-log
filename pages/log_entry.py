@@ -8,14 +8,16 @@ def show():
     entry_type = st.selectbox("Select Entry Type", ["Income", "Expense"])
     entry_date = st.date_input("Date", date.today())
     amount = st.number_input("Amount", min_value=0.0, value=0.0, step=1.0)
-    description = st.text_input("Description or Invoice #")
+    description = st.text_input("Description")
 
     if entry_type == "Income":
         source = st.text_input("Income Source")
         rental_dates = st.text_input("Rental Dates (optional)")
     else:
-        purchaser = st.text_input("Purchaser")
-        item = st.text_input("Item Description")
+        purchaser_options = ["JM JetBlue", "JB C1417", "OPP JetBlue", "Other"]
+        purchaser = st.selectbox("Purchaser", purchaser_options)
+        if purchaser == "Other":
+            purchaser = st.text_input("Enter Purchaser Name")
         expenses_df = load_excel_data("2025 OPP Expenses")
         categories = expenses_df["Category"].dropna().unique() if "Category" in expenses_df.columns else []
         category = st.selectbox("Category", categories if len(categories) else ["General"])
