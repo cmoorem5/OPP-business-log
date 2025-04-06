@@ -8,6 +8,7 @@ page = st.sidebar.radio("Navigate", ["Dashboard", "Log Entry", "View Entries", "
 
 # Debug info
 st.write("DEBUG: App loaded. Selected page:", page)
+st.write("DEBUG: dashboard is", dashboard)
 
 if page == "Dashboard":
     dashboard.show()
