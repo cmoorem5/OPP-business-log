@@ -6,7 +6,9 @@ st.set_page_config(page_title="OPP Finance Tracker", layout="wide")
 
 # Logo in sidebar
 logo = Image.open("assets/logo.jpg")
-st.sidebar.image(logo, use_column_width=True)
+st.sidebar.image(logo, use_container_width=True)
+
+
 
 st.sidebar.title("📘 OPP Finance Tracker")
 page = st.sidebar.radio("Navigate", ["Dashboard", "Log Entry", "View Entries", "Receipts", "Data Export"])
