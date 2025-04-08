@@ -12,7 +12,14 @@ def show():
 
     if entry_type == "Income":
         source = st.text_input("Income Source")
-        rental_dates = st.text_input("Rental Dates (optional)")
+
+        rental_dates = st.date_input("Rental Date Range", value=(date.today(), date.today()))
+        
+        st.markdown("### 👤 Renter Details")
+        renter_name = st.text_input("Renter Name")
+        renter_email = st.text_input("Email Address")
+        renter_location = st.text_input("Where are they from?")
+
     else:
         purchasers_df = load_excel_data("Purchasers")
         purchaser_list = purchasers_df["Purchaser"].dropna().unique().tolist()
