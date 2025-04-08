@@ -5,7 +5,7 @@ from features import dashboard, log_entry, view_entries, receipts, export
 st.set_page_config(page_title="OPP Finance Tracker", layout="wide")
 
 # Logo in sidebar
-logo = Image.open("assets/logo.png")
+logo = Image.open("assets/logo.jpg")
 st.sidebar.image(logo, use_column_width=True)
 
 st.sidebar.title("📘 OPP Finance Tracker")
