@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import date
 from utils.data_loader import load_excel_data
+from utils.google_sheets import append_row
 
 def show():
     st.markdown("## 📝 Log New Entry")
@@ -12,14 +13,12 @@ def show():
 
     if entry_type == "Income":
         source = st.text_input("Income Source")
-
         rental_dates = st.date_input("Rental Date Range", value=(date.today(), date.today()))
-        
+
         st.markdown("### 👤 Renter Details")
         renter_name = st.text_input("Renter Name")
         renter_email = st.text_input("Email Address")
         renter_location = st.text_input("Where are they from?")
-
     else:
         purchasers_df = load_excel_data("Purchasers")
         purchaser_list = purchasers_df["Purchaser"].dropna().unique().tolist()
@@ -33,5 +32,22 @@ def show():
         comments = st.text_area("Comments")
 
     if st.button("Submit Entry"):
-        st.success(f"{entry_type} entry submitted!")
-        st.info("Note: This version does not save to the Excel file — saving feature coming soon.")
+        try:
+            json_key_path = "opp-rental-tracker-f7fe7e5ad486.json"
+            sheet_name = "OPP Finance Tracker"  # Change this to match your Google Sheet title
+
+            if entry_type == "Income":
+                tab_name = "2025 OPP Income"
+                row = [
+                    str(entry_date), amount, description, source,
+                    str(rental_dates[0]), str(rental_dates[1]),
+                    renter_name, renter_email, renter_location
+                ]
+            else:
+                tab_name = "2025 OPP Expenses"
+                row = [str(entry_date), amount, description, purchaser, category, comments]
+
+            append_row(json_key_path, sheet_name, tab_name, row)
+            st.success(f"{entry_type} entry submitted and saved to Google Sheets!")
+        except Exception as e:
+            st.error(f"Failed to save entry: {e}")
