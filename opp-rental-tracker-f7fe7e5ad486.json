@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "opp-rental-tracker",
+  "private_key_id": "f7fe7e5ad486a42c04c9da24425bc42ef79d3904",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCVyskXaAs3K9Y7\nMAwaUwU7rXg6JplZnIaiMBKwO9mlEVrIsUorI/pjohneyLIONUOihyDeTzF0JtGw\nqA8AfOu5VVJsnobliuS+fTf76OEIACc6/biKXarzC++U5w5x6eEIMc3OtuYt3Tc8\nc9M12ABGVrg7noazHoxCP5EXQKBqIv9Ongg5GHIk8nJYCbL0KmMK+Vcu51ZP9LW+\nnmAOF14xflzynxzk/G/cWxHl15nBs4SE21omM3pJXJMCnibITWzGUHoOwsV1DBQU\nNQyV4h6CG/gSzNvXlQTxfEgCnNC1vy7lA03RGhT6tuIWIpr4hAsp12R5G0QOJnTH\nw5ANhbFtAgMBAAECggEAAssd8Guy+iGGZuwYtkFkc9dZbvPmidsr4k01Rt663N8W\nBIHmwTmPpYJffX4A3qEIcnjgJiZUJLv8vHVlTfCPl4gJIO7vLnAK+vDeg0yH48x8\nE2DORtKWJUyMgX8NvbriKVe12059hXzMFzqf4NRJSCsYoPTb1UmFX7x5z748Cwjs\ny+1qoBSLDiU3llJ3s4GDQDHVhec0O8uxAm68nyIBiLbzaAW7CoH0EVf3OfadDdV3\nc33e0a76rfuQ6zkBDEIA4Br/QixukglPSwi35C+SO80fS19weUgodpRyfFjRYvV/\nyegCytZTYZPCibiP7z2iE3PGX7loL6v/Mm8HuptTeQKBgQDSDSXTPl/nj7nauJlU\nWQHRSCVPawJxDaHEg3/Z++Z6D7l8j6u3C7CbR9SCmjttWoZ/CFLjwEEKEcvMyo5D\nJLcP5Weda2I8Y5rmUE49z9dfS/KGrUxhGDtQj+y1EwPvNqW89pQ+nah3g5tTnAUq\nJGPXBR2UraZgd1P74sK+tSr9pQKBgQC2jyC7BVLAdwQ1PgM+EA+RM5GAwxsgA2ON\nlVSwL23Y15H/LPK9wCHLhqvy8mIBtrb5inhA/TS1mhLLyLgezVOuW+IPdt0qpRIS\n549jTWCTbkh0BfXuF55XhGNAZCL43klSk6bNT+QV0lBTB/1Un1eXqE6Dhz9vY3cy\nW5fpGQ4qKQKBgQC5ciom6ja5tcacN8YHFd3o6w0lpJAvR52+ZWqHBUJiGWfldOJh\nZMyzCyOveoNk9DsyBCNKN/4z6apIT7xxwwRr4FkuPhQoxLeJBvVM1SaMV/zysiVw\nw3f6lFajNvqOQ2zn+7q93WtSuLp1gpV8s0wCFd4b2YO+PxvCklzlCgW+kQKBgDkl\ndqZ0lSHgX7XW8qbj2iumy95VtNEBnpE8dKUuQ6GEYZRSWq4hTbLrNjo3u4wzyPU2\nbkxRtsU+NLIL4+7ocVB8PLiAid0GjTDTwaPhHeEovY9sKj7cr9lPfM40SmpDEwrB\nY46Tep+GFVTYhGmP85hqvCEaHjZdGXvvBg+Wo0N5AoGBAIyi/MyV+oAEoz1UHCGN\nepVcevqt2Jnqf1MwnDZJAlfHMho+kCpytoMz4SHdD80V0HUf92w8LFcAG0N/2XdZ\nqi6+OKYGiMDV/li0U/R9pkJ28SpJrFkWEjgodW1gKaVmYPawO+uUV3t2fILM1qCT\nHBxkVmh/Mat66a/s64jM/0MM\n-----END PRIVATE KEY-----\n",
+  "client_email": "opp-entry-saver@opp-rental-tracker.iam.gserviceaccount.com",
+  "client_id": "101768371850414420085",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/opp-entry-saver%40opp-rental-tracker.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
