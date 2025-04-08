@@ -1,12 +1,16 @@
 import streamlit as st
+from PIL import Image
 from features import dashboard, log_entry, view_entries, receipts, export
 
 st.set_page_config(page_title="OPP Finance Tracker", layout="wide")
 
+# Logo in sidebar
+logo = Image.open("assets/logo.png")
+st.sidebar.image(logo, use_column_width=True)
+
 st.sidebar.title("📘 OPP Finance Tracker")
 page = st.sidebar.radio("Navigate", ["Dashboard", "Log Entry", "View Entries", "Receipts", "Data Export"])
 
-# Version history
 with st.sidebar.expander("🕒 Version History"):
     st.markdown("""
     **v1.0.0** – Modular base app complete  
