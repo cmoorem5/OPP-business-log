@@ -27,7 +27,7 @@ def show():
     expense_df["Date"] = pd.to_datetime(expense_df["Date"], errors="coerce")
 
     # Use verified parsing logic
-    income_df["Income Amount"] = pd.to_numeric(income_df["Income Amount"], errors="coerce")
+    income_df["Income Amount"] = pd.to_numeric(income_df["Income Amount"], errors="coerce").fillna(0)
     expense_df["Amount"] = pd.to_numeric(expense_df["Amount"], errors="coerce")
 
     income_df["Month"] = normalize_month(income_df["Parsed Date"].dt.strftime("%B"))
