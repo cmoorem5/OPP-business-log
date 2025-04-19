@@ -1,6 +1,6 @@
 import streamlit as st
 from PIL import Image
-from features import dashboard, log_entry, view_entries, receipts, export, debug_credentials
+from features import dashboard, log_entry, view_entries, receipts, export, debug_credentials, debug_dashboard
 
 st.set_page_config(page_title="OPP Finance Tracker", layout="wide")
 
@@ -8,7 +8,15 @@ logo = Image.open("assets/logo.jpg")
 st.sidebar.image(logo, use_container_width=True)
 
 st.sidebar.title("📘 OPP Finance Tracker")
-page = st.sidebar.radio("Navigate", ["Dashboard", "Rental Entry", "View Entries", "Receipts", "Data Export", "Debug Credentials"])
+page = st.sidebar.radio("Navigate", [
+    "Dashboard", 
+    "Rental Entry", 
+    "View Entries", 
+    "Receipts", 
+    "Data Export", 
+    "Debug Credentials",
+    "Debug Dashboard"
+])
 
 with st.sidebar.expander("🕒 Version History"):
     st.markdown("""
@@ -18,10 +26,14 @@ with st.sidebar.expander("🕒 Version History"):
     - View & Export data  
     - Structure uses `features/` folder for pages
 
-    **v1.1.0-dev** – Coming Soon  
-    - Save entries to Google Sheets  
-    - Receipt file storage  
-    - Visual filters & date range tools
+    **v1.1.0-dev** – Added Google Sheets + Drive integration  
+    - Monthly routing for receipts  
+    - Income & expense logging live  
+    - View clickable receipt links
+
+    **v1.2.0-dev** – Debugging tools added  
+    - Secret validator  
+    - Live income data parser
     """)
 
 if page == "Dashboard":
@@ -36,3 +48,5 @@ elif page == "Data Export":
     export.show()
 elif page == "Debug Credentials":
     debug_credentials.show()
+elif page == "Debug Dashboard":
+    debug_dashboard.show()
