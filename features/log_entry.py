@@ -9,7 +9,6 @@ def show():
     entry_type = st.selectbox("Select Entry Type", ["Income", "Expense"])
     entry_date = st.date_input("Date", date.today())
     amount = st.number_input("Amount", min_value=0.0, value=0.0, step=1.0)
-    description = st.text_input("Description")
 
     if entry_type == "Income":
         source = st.text_input("Income Source")
@@ -19,6 +18,7 @@ def show():
         renter_name = st.text_input("Renter Name")
         renter_email = st.text_input("Email Address")
         renter_location = st.text_input("Where are they from?")
+        property_location = st.selectbox("Property", ["Florida", "Maine"])
     else:
         purchasers_df = load_excel_data("Purchasers")
         purchaser_list = purchasers_df["Purchaser"].dropna().unique().tolist()
@@ -36,15 +36,16 @@ def show():
 
     if st.button("Submit Entry"):
         try:
-            json_key_path = "opp-rental-tracker-b47e4a2b47b4.json"
             sheet_name = "OPP Finance Tracker"
 
             if entry_type == "Income":
                 tab_name = "2025 OPP Income"
+                month = entry_date.strftime("%B")
                 row = [
-                    str(entry_date), amount, description, source,
+                    month, str(entry_date), source,
                     str(rental_dates[0]), str(rental_dates[1]),
-                    renter_name, renter_email, renter_location
+                    renter_name, renter_email, renter_location,
+                    property_location
                 ]
             else:
                 tab_name = "2025 OPP Expenses"
@@ -54,7 +55,7 @@ def show():
                     property_location, category, amount, comments
                 ]
 
-            append_row(json_key_path, sheet_name, tab_name, row)
+            append_row(sheet_name, tab_name, row)
             st.success(f"{entry_type} entry submitted and saved to Google Sheets!")
         except Exception as e:
             st.error(f"Failed to save entry: {e}")
