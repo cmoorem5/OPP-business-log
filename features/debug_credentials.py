@@ -22,7 +22,6 @@ def show():
         st.write("Your credentials are fully working.")
         st.json({
             "client_email": creds.service_account_email,
-            "token_uri": creds.token_uri,
             "project_id": creds.project_id
         })
     except Exception as e:
