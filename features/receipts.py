@@ -20,14 +20,12 @@ def show():
                 "2024": "1EzfFR_Gscz1hKvnfUr6X0JUrAIfWm5sK",
                 "2025": "1olfna0Ob8u8LBnxG9Gz0hDW8Eyzxc5Tt"
             }
-            credentials_path = "opp-rental-tracker-b47e4a2b47b4.json"
             folder_id = folder_map[selected_year]
 
             file_id = upload_file_to_drive(
                 file_path=tmp_file_path,
                 file_name=uploaded_file.name,
-                folder_id=folder_id,
-                credentials_path=credentials_path
+                folder_id=folder_id
             )
             st.success(f"✅ File uploaded to {selected_year} folder in Google Drive.")
             st.markdown(f"[View file in Drive](https://drive.google.com/file/d/{file_id}/view)", unsafe_allow_html=True)
