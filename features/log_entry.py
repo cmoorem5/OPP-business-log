@@ -55,7 +55,10 @@ def show():
                     property_location, category, amount, comments
                 ]
 
-            append_row(sheet_name, tab_name, row)
-            st.success(f"{entry_type} entry submitted and saved to Google Sheets!")
+            response = append_row(sheet_name, tab_name, row)
+            if response is None or (hasattr(response, "status_code") and response.status_code == 200):
+                st.success(f"{entry_type} entry submitted and saved to Google Sheets!")
+            else:
+                st.warning(f"Entry submitted but returned: {response}")
         except Exception as e:
             st.error(f"Failed to save entry: {e}")
