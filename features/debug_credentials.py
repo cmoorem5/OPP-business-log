@@ -22,5 +22,4 @@ def show():
             "project_id": creds.project_id
         })
     except Exception as e:
-        st.error(f"❌ Failed to load or validate credentials:
-{e}")
+        st.error(f"❌ Failed to load or validate credentials:\n{e}")
