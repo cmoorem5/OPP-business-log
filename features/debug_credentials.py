@@ -11,10 +11,14 @@ def show():
         creds_dict = json.loads(st.secrets["gdrive_credentials"])
         st.success("✅ Secrets loaded and parsed.")
 
-        creds = Credentials.from_service_account_info(creds_dict)
+        SCOPES = [
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+        creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
         creds.refresh(Request())
 
-        st.success("✅ JWT Signature is valid — Google accepted the token.")
+        st.success("✅ JWT Signature and scopes are valid — Google accepted the token.")
         st.write("Your credentials are fully working.")
         st.json({
             "client_email": creds.service_account_email,
