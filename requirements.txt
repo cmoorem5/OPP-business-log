@@ -1,7 +1,8 @@
+# Core dependencies
 streamlit
 pandas
-matplotlib
-openpyxl
-plotly
+
+# Google integrations
 gspread
 google-auth
+google-api-python-client
