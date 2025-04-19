@@ -1,38 +1,54 @@
 import streamlit as st
+import pandas as pd
+from utils.google_sheets import get_worksheet
 import plotly.graph_objects as go
-from utils.data_loader import load_excel_data
-import calendar
 
 def show():
-    st.markdown("## 📊 Dashboard Overview")
-    st.write("A summary of income, expenses, and net profit with visual insights.")
-
-    income_df = load_excel_data("2025 OPP Income")
-    expenses_df = load_excel_data("2025 OPP Expenses")
-
-    total_income = income_df["Income Amount"].sum()
-    total_expenses = expenses_df["Amount"].sum()
-    net_profit = total_income - total_expenses
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("💰 Total Income", f"${total_income:,.2f}")
-    col2.metric("📉 Total Expenses", f"${total_expenses:,.2f}")
-    col3.metric("📈 Net Profit", f"${net_profit:,.2f}")
-
-    st.markdown("---")
-    st.markdown("### 📅 Monthly Income vs Expenses")
-
-    income_by_month = income_df.groupby("Month")["Income Amount"].sum()
-    expenses_by_month = expenses_df.groupby("Month")["Amount"].sum()
-
-    month_order = list(calendar.month_name)[1:]
-    months = [m for m in month_order if m in income_by_month.index or m in expenses_by_month.index]
-
-    income_values = [income_by_month.get(month, 0) for month in months]
-    expense_values = [expenses_by_month.get(month, 0) for month in months]
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(x=months, y=income_values, name="Income", marker_color="green"))
-    fig.add_trace(go.Bar(x=months, y=expense_values, name="Expenses", marker_color="red"))
-    fig.update_layout(barmode="group", title="Monthly Income vs Expenses", xaxis_title="Month", yaxis_title="Amount ($)")
-    st.plotly_chart(fig, use_container_width=True)
+    st.title("📊 Dashboard Overview")
+    
+    sheet_name = "OPP Finance Tracker"
+    
+    # Load Google Sheet tabs
+    income_ws = get_worksheet(sheet_name, "2025 OPP Income")
+    expenses_ws = get_worksheet(sheet_name, "2025 OPP Expenses")
+    
+    # Convert to DataFrames
+    income_data = income_ws.get_all_records()
+    expense_data = expenses_ws.get_all_records()
+    income_df = pd.DataFrame(income_data)
+    expense_df = pd.DataFrame(expense_data)
+    
+    # Ensure date parsing
+    income_df["Date"] = pd.to_datetime(income_df["Date"], errors="coerce")
+    expense_df["Date"] = pd.to_datetime(expense_df["Date"], errors="coerce")
+    
+    # Summarize totals
+    income_df["Amount"] = pd.to_numeric(income_df["Amount"], errors="coerce")
+    expense_df["Amount"] = pd.to_numeric(expense_df["Amount"], errors="coerce")
+    
+    income_df["Month"] = income_df["Date"].dt.strftime("%B")
+    expense_df["Month"] = expense_df["Date"].dt.strftime("%B")
+    
+    # Monthly totals by property
+    monthly_income = income_df.groupby(["Month", "Property"])["Amount"].sum().reset_index(name="Income")
+    monthly_expense = expense_df.groupby(["Month", "Property"])["Amount"].sum().reset_index(name="Expenses")
+    
+    # Merge and fill missing
+    summary = pd.merge(monthly_income, monthly_expense, on=["Month", "Property"], how="outer").fillna(0)
+    summary["Profit"] = summary["Income"] - summary["Expenses"]
+    
+    # Sort months in calendar order
+    month_order = ["January", "February", "March", "April", "May", "June", 
+                   "July", "August", "September", "October", "November", "December"]
+    summary["Month"] = pd.Categorical(summary["Month"], categories=month_order, ordered=True)
+    summary = summary.sort_values(by=["Month", "Property"])
+    
+    st.markdown("### 📅 Monthly Profit/Loss by Property")
+    for prop in summary["Property"].unique():
+        prop_df = summary[summary["Property"] == prop]
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=prop_df["Month"], y=prop_df["Income"], name="Income"))
+        fig.add_trace(go.Bar(x=prop_df["Month"], y=prop_df["Expenses"], name="Expenses"))
+        fig.add_trace(go.Scatter(x=prop_df["Month"], y=prop_df["Profit"], name="Profit", mode="lines+markers"))
+        fig.update_layout(title=f"{prop} - Monthly Summary", barmode="group", xaxis_title="Month", yaxis_title="Amount ($)")
+        st.plotly_chart(fig, use_container_width=True)
