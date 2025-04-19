@@ -15,8 +15,9 @@ def show():
 
     # Load Google Sheet tabs
     income_ws = get_worksheet(sheet_name, "2025 OPP Income")
-    expenses_ws = get_worksheet(sheet_name, "2025 OPP Expenses")
+    expense_ws = get_worksheet(sheet_name, "2025 OPP Expenses")
 
+    # Convert to DataFrames
     income_df = pd.DataFrame(income_ws.get_all_records())
     expense_df = pd.DataFrame(expense_ws.get_all_records())
 
@@ -26,8 +27,10 @@ def show():
     else:
         income_df["Parsed Date"] = pd.NaT
 
+    # Parse expense dates
     expense_df["Date"] = pd.to_datetime(expense_df["Date"], errors="coerce")
 
+    # Convert numeric fields
     income_df["Income Amount"] = pd.to_numeric(income_df["Income Amount"], errors="coerce")
     expense_df["Amount"] = pd.to_numeric(expense_df["Amount"], errors="coerce")
 
@@ -35,13 +38,15 @@ def show():
     income_df["Month"] = normalize_month(income_df["Parsed Date"].dt.strftime("%B"))
     expense_df["Month"] = normalize_month(expense_df["Month"].astype(str))
 
-    # Group by Month + Property
+    # Group by month and property
     monthly_income = income_df.groupby(["Month", "Property"])["Income Amount"].sum().reset_index(name="Income")
     monthly_expense = expense_df.groupby(["Month", "Property"])["Amount"].sum().reset_index(name="Expenses")
 
+    # Merge and calculate profit
     summary = pd.merge(monthly_income, monthly_expense, on=["Month", "Property"], how="outer").fillna(0)
     summary["Profit"] = summary["Income"] - summary["Expenses"]
 
+    # Order by calendar months
     month_order = ["January", "February", "March", "April", "May", "June", 
                    "July", "August", "September", "October", "November", "December"]
     summary["Month"] = pd.Categorical(summary["Month"], categories=month_order, ordered=True)
