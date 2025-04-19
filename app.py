@@ -1,6 +1,6 @@
 import streamlit as st
 from PIL import Image
-from features import dashboard, log_entry, view_entries, receipts, export
+from features import dashboard, log_entry, view_entries, receipts, export, debug_credentials
 
 st.set_page_config(page_title="OPP Finance Tracker", layout="wide")
 
@@ -8,7 +8,7 @@ logo = Image.open("assets/logo.jpg")
 st.sidebar.image(logo, use_container_width=True)
 
 st.sidebar.title("📘 OPP Finance Tracker")
-page = st.sidebar.radio("Navigate", ["Dashboard", "Rental Entry", "View Entries", "Receipts", "Data Export"])
+page = st.sidebar.radio("Navigate", ["Dashboard", "Rental Entry", "View Entries", "Receipts", "Data Export", "Debug Credentials"])
 
 with st.sidebar.expander("🕒 Version History"):
     st.markdown("""
@@ -34,3 +34,5 @@ elif page == "Receipts":
     receipts.show()
 elif page == "Data Export":
     export.show()
+elif page == "Debug Credentials":
+    debug_credentials.show()
