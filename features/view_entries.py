@@ -14,6 +14,18 @@ def show():
     income_df = pd.DataFrame(income_ws.get_all_records())
     expense_df = pd.DataFrame(expense_ws.get_all_records())
 
+    # Fix month sort order
+    month_order = ["January", "February", "March", "April", "May", "June", 
+                   "July", "August", "September", "October", "November", "December"]
+
+    if "Month" in income_df.columns:
+        income_df["Month"] = pd.Categorical(income_df["Month"], categories=month_order, ordered=True)
+        income_df = income_df.sort_values(by="Month")
+
+    if "Month" in expense_df.columns:
+        expense_df["Month"] = pd.Categorical(expense_df["Month"], categories=month_order, ordered=True)
+        expense_df = expense_df.sort_values(by="Month")
+
     view_option = st.radio("Select Entry Type", ["Income", "Expense"], horizontal=True)
 
     if view_option == "Income":
@@ -22,10 +34,11 @@ def show():
     else:
         st.subheader("💸 Expense Entries")
 
-        # Convert links to clickable markdown
+        # Format links as clickable markdown-style strings
         if "Receipt Link" in expense_df.columns:
             expense_df["Receipt Link"] = expense_df["Receipt Link"].apply(
-                lambda url: f"[View]({url})" if url else ""
+                lambda url: f"[View Receipt]({url})" if isinstance(url, str) and url.startswith("http") else ""
             )
 
-        st.dataframe(expense_df, use_container_width=True)
+        st.markdown("### Expense Log with Clickable Receipt Links")
+        st.markdown(expense_df.to_markdown(index=False), unsafe_allow_html=True)
