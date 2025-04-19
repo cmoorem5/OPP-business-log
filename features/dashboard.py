@@ -5,44 +5,48 @@ import plotly.graph_objects as go
 
 def show():
     st.title("📊 Dashboard Overview")
-    
+
     sheet_name = "OPP Finance Tracker"
-    
+
     # Load Google Sheet tabs
     income_ws = get_worksheet(sheet_name, "2025 OPP Income")
     expenses_ws = get_worksheet(sheet_name, "2025 OPP Expenses")
-    
+
     # Convert to DataFrames
-    income_data = income_ws.get_all_records()
-    expense_data = expenses_ws.get_all_records()
-    income_df = pd.DataFrame(income_data)
-    expense_df = pd.DataFrame(expense_data)
-    
-    # Ensure date parsing
-    income_df["Date"] = pd.to_datetime(income_df["Date"], errors="coerce")
+    income_df = pd.DataFrame(income_ws.get_all_records())
+    expense_df = pd.DataFrame(expenses_ws.get_all_records())
+
+    # Parse income "Rental Dates" field
+    if "Rental Dates" in income_df.columns:
+        income_df["Parsed Date"] = pd.to_datetime(income_df["Rental Dates"].str.extract(r"(\d{4}-\d{2}-\d{2})")[0], errors="coerce")
+    else:
+        income_df["Parsed Date"] = pd.NaT
+
+    # Parse expense dates
     expense_df["Date"] = pd.to_datetime(expense_df["Date"], errors="coerce")
-    
-    # Summarize totals
-    income_df["Amount"] = pd.to_numeric(income_df["Amount"], errors="coerce")
+
+    # Ensure numeric conversion
+    income_df["Income Amount"] = pd.to_numeric(income_df["Income Amount"], errors="coerce")
     expense_df["Amount"] = pd.to_numeric(expense_df["Amount"], errors="coerce")
-    
-    income_df["Month"] = income_df["Date"].dt.strftime("%B")
+
+    # Month and property mapping
+    income_df["Month"] = income_df["Parsed Date"].dt.strftime("%B")
     expense_df["Month"] = expense_df["Date"].dt.strftime("%B")
-    
-    # Monthly totals by property
-    monthly_income = income_df.groupby(["Month", "Property"])["Amount"].sum().reset_index(name="Income")
+
+    # Monthly totals
+    monthly_income = income_df.groupby(["Month", "Property"])["Income Amount"].sum().reset_index(name="Income")
     monthly_expense = expense_df.groupby(["Month", "Property"])["Amount"].sum().reset_index(name="Expenses")
-    
+
     # Merge and fill missing
     summary = pd.merge(monthly_income, monthly_expense, on=["Month", "Property"], how="outer").fillna(0)
     summary["Profit"] = summary["Income"] - summary["Expenses"]
-    
-    # Sort months in calendar order
+
+    # Sort months
     month_order = ["January", "February", "March", "April", "May", "June", 
                    "July", "August", "September", "October", "November", "December"]
     summary["Month"] = pd.Categorical(summary["Month"], categories=month_order, ordered=True)
     summary = summary.sort_values(by=["Month", "Property"])
-    
+
     st.markdown("### 📅 Monthly Profit/Loss by Property")
     for prop in summary["Property"].unique():
         prop_df = summary[summary["Property"] == prop]
