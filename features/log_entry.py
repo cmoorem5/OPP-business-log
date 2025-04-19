@@ -2,6 +2,9 @@ import streamlit as st
 from datetime import date
 from utils.data_loader import load_excel_data
 from utils.google_sheets import append_row
+from utils.google_drive import upload_file_to_drive
+import os
+import tempfile
 
 def show():
     st.markdown("## 📝 Log New Entry")
@@ -34,6 +37,28 @@ def show():
         category = st.selectbox("Category", categories if len(categories) else ["General"])
         comments = st.text_area("Comments")
 
+        st.markdown("### 📎 Upload Receipt (optional)")
+        uploaded_file = st.file_uploader("Upload Receipt File", type=["pdf", "png", "jpg", "jpeg"])
+        receipt_link = ""
+
+        if uploaded_file:
+            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                tmp_file.write(uploaded_file.getbuffer())
+                tmp_file_path = tmp_file.name
+
+            try:
+                receipt_folder_id = "1olfna0Ob8u8LBnxG9Gz0hDW8Eyzxc5Tt"  # 2025 folder
+                file_id = upload_file_to_drive(
+                    file_path=tmp_file_path,
+                    file_name=uploaded_file.name,
+                    folder_id=receipt_folder_id
+                )
+                receipt_link = f"https://drive.google.com/file/d/{file_id}/view"
+            except Exception as e:
+                st.warning(f"Receipt upload failed: {e}")
+            finally:
+                os.remove(tmp_file_path)
+
     if st.button("Submit Entry"):
         try:
             sheet_name = "OPP Finance Tracker"
@@ -52,7 +77,7 @@ def show():
                 month = entry_date.strftime("%B")
                 row = [
                     month, str(entry_date), purchaser, item,
-                    property_location, category, amount, comments
+                    property_location, category, amount, comments, receipt_link
                 ]
 
             response = append_row(sheet_name, tab_name, row)
