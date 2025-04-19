@@ -1,8 +1,10 @@
-# Core dependencies
+# Core
 streamlit
 pandas
+openpyxl
+plotly
 
-# Google integrations
+# Google Sheets & Drive
 gspread
 google-auth
 google-api-python-client
