@@ -52,9 +52,9 @@ def show():
 
         st.markdown("### 📎 Upload Receipt (optional)")
         uploaded_file = st.file_uploader("Upload Receipt File", type=["pdf", "png", "jpg", "jpeg"])
-        receipt_link = ""
+        receipt_link = st.session_state.get("receipt_link", "")
 
-        if uploaded_file:
+        if uploaded_file and not receipt_link:
             with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
                 tmp_file.write(uploaded_file.getbuffer())
                 tmp_file_path = tmp_file.name
@@ -69,6 +69,7 @@ def show():
                         folder_id=folder_id
                     )
                     receipt_link = f"https://drive.google.com/file/d/{file_id}/view"
+                    st.session_state["receipt_link"] = receipt_link
                 else:
                     st.warning("No folder configured for {} 2025.".format(month_name))
             except Exception as e:
@@ -102,6 +103,7 @@ def show():
             response = append_row(sheet_name, tab_name, row)
             if response is None or (hasattr(response, "status_code") and response.status_code == 200):
                 st.success(f"{entry_type} entry submitted and saved to Google Sheets!")
+                st.session_state["receipt_link"] = ""  # Reset after success
             else:
                 st.warning(f"Entry submitted but returned: {response}")
         except Exception as e:
