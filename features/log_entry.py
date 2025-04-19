@@ -6,6 +6,18 @@ from utils.google_drive import upload_file_to_drive
 import os
 import tempfile
 
+monthly_folders_2025 = {
+    "April": "1wPerZFB-9FufTZOGfFXf2xMVg4VlGtdC",
+    "May": "1e12yCfo8WZS8gnYuSPbxeHiZ1aVWbbJe",
+    "June": "1WRSSZUGPHgGvd1cSUNDEjpTGq2FmrqcZ",
+    "July": "10nWoAibOWzVeWx0Qn3TC8Z6g-UXkToPd",
+    "August": "1xvT2NA9rPpXX0SQ1CKE9NeTbc9mvrgxK",
+    "September": "160isZV8ja5Kgw7sKx88f969tIUZR6Jfo",
+    "October": "1XbP4T78e71CYA5s-1ksPYK6bujmo-UQn",
+    "November": "1zxxtG1cwvpcckQ3nvB3zKHStxDBfRFF6",
+    "December": "1iJwfC3siEudH8uzdZGwlid6ufhFG5AMb"
+}
+
 def show():
     st.markdown("## 📝 Log New Entry")
 
@@ -47,13 +59,17 @@ def show():
                 tmp_file_path = tmp_file.name
 
             try:
-                receipt_folder_id = "1olfna0Ob8u8LBnxG9Gz0hDW8Eyzxc5Tt"  # 2025 folder
-                file_id = upload_file_to_drive(
-                    file_path=tmp_file_path,
-                    file_name=uploaded_file.name,
-                    folder_id=receipt_folder_id
-                )
-                receipt_link = f"https://drive.google.com/file/d/{file_id}/view"
+                month_name = entry_date.strftime("%B")
+                folder_id = monthly_folders_2025.get(month_name)
+                if folder_id:
+                    file_id = upload_file_to_drive(
+                        file_path=tmp_file_path,
+                        file_name=uploaded_file.name,
+                        folder_id=folder_id
+                    )
+                    receipt_link = f"https://drive.google.com/file/d/{file_id}/view"
+                else:
+                    st.warning("No folder configured for {} 2025.".format(month_name))
             except Exception as e:
                 st.warning(f"Receipt upload failed: {e}")
             finally:
