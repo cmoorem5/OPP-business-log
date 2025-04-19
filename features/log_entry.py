@@ -34,6 +34,7 @@ def show():
         renter_email = st.text_input("Email Address")
         renter_location = st.text_input("Where are they from?")
         property_location = st.selectbox("Property", ["Florida", "Maine"])
+        payment_status = st.selectbox("Payment Status", ["Paid", "PMT due", "Downpayment received"])
     else:
         purchasers_df = load_excel_data("Purchasers")
         purchaser_list = purchasers_df["Purchaser"].dropna().unique().tolist()
@@ -82,11 +83,13 @@ def show():
             if entry_type == "Income":
                 tab_name = "2025 OPP Income"
                 month = entry_date.strftime("%B")
+                rental_range = f"{rental_dates[0]} - {rental_dates[1]}"
                 row = [
-                    month, str(entry_date), source,
-                    str(rental_dates[0]), str(rental_dates[1]),
-                    renter_name, renter_email, renter_location,
-                    property_location
+                    month, rental_range, source, "",  # Description/Invoice No. left blank
+                    amount, payment_status, "",       # Notes left blank
+                    renter_name, "",                  # Address left blank
+                    renter_location, "", "",          # City, State, Zip
+                    renter_email
                 ]
             else:
                 tab_name = "2025 OPP Expenses"
