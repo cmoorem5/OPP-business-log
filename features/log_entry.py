@@ -58,6 +58,7 @@ def show():
 
     # Expense Entry Section
     if entry_type == "Expense":
+    with st.form("expense_form"):
         purchasers_ws = get_worksheet("OPP Finance Tracker", "Purchasers")
         purchasers_df = pd.DataFrame(purchasers_ws.get_all_records())
         purchaser_list = purchasers_df["Purchaser"].dropna().unique().tolist()
@@ -90,9 +91,13 @@ def show():
             finally:
                 os.remove(tmp_file_path)
 
-        row = [entry_date.strftime("%B"), str(entry_date), purchaser, item, property_location, category, amount, comments, receipt_link]
-        append_row("OPP Finance Tracker", "2025 OPP Expenses", row)
-        st.success("Expense entry submitted!")
+        submitted = st.form_submit_button("Submit Expense Entry")
+
+        if submitted:
+            row = [entry_date.strftime("%B"), str(entry_date), purchaser, item, property_location, category, amount, comments, receipt_link]
+            append_row("OPP Finance Tracker", "2025 OPP Expenses", row)
+            st.success("Expense entry submitted!")
+
 
 
     else:
