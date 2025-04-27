@@ -1,34 +1,43 @@
 import streamlit as st
 from PIL import Image
-from features import dashboard, log_entry, view_entries, receipts, export, debug_credentials, debug_dashboard
+from features import (
+    dashboard,
+    log_entry,
+    view_entries,
+    receipts,
+    export,
+    debug_credentials,
+    debug_dashboard,
+)
 
-# Load new logo
-logo = Image.open("assets/logo-180.png")
+# Load icons
+icon = Image.open("assets/logo-180.png")      # for favicon & iOS home-screen
+sidebar_logo = Image.open("assets/logo.jpg")  # full-size for sidebar
 
-# Configure page with new logo as favicon and Apple touch icon
+# Configure page
 st.set_page_config(
     page_title="OPP Finance Tracker",
-    page_icon=logo,
+    page_icon=icon,
     layout="wide",
 )
 
-# Inject Apple touch icon for iOS home screen
+# Inject Apple touch icon
 st.markdown(
     '<link rel="apple-touch-icon" sizes="180x180" href="assets/logo-180.png">',
     unsafe_allow_html=True,
 )
 
-# Sidebar with navigation and logo
-st.sidebar.image(logo, use_container_width=True)
+# Sidebar
+st.sidebar.image(sidebar_logo, use_container_width=True)
 st.sidebar.title("📘 OPP Finance Tracker")
 page = st.sidebar.radio("Navigate", [
-    "Dashboard", 
-    "Rental Entry", 
-    "View Entries", 
-    "Receipts", 
-    "Data Export", 
+    "Dashboard",
+    "Rental Entry",
+    "View Entries",
+    "Receipts",
+    "Data Export",
     "Debug Credentials",
-    "Debug Dashboard"
+    "Debug Dashboard",
 ])
 
 with st.sidebar.expander("🕒 Version History"):
@@ -49,6 +58,7 @@ with st.sidebar.expander("🕒 Version History"):
     - Live income data parser
     """)
 
+# Page routing
 if page == "Dashboard":
     dashboard.show()
 elif page == "Rental Entry":
@@ -63,3 +73,4 @@ elif page == "Debug Credentials":
     debug_credentials.show()
 elif page == "Debug Dashboard":
     debug_dashboard.show()
+
