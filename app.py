@@ -34,8 +34,6 @@ page = st.sidebar.radio("Navigate", [
     "View Entries",
     "Receipts",
     "Data Export",
-    "Debug Credentials",
-    "Debug Dashboard",
 ])
 
 with st.sidebar.expander("🕒 Version History"):
