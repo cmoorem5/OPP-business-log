@@ -1,29 +1,23 @@
 import streamlit as st
-import plotly.express as px
+import pandas as pd
+import plotly.graph_objects as go
 from utils.google_sheets import load_sheet_as_df
 
 def show():
     st.title("📊 Dashboard Overview")
 
     sheet = "OPP Finance Tracker"
-    income_df  = load_sheet_as_df(sheet, "2025 OPP Income")
-    expense_df = load_sheet_as_df(sheet, "2025 OPP Expenses")
+    # Load data
+    income_df  = load_sheet_as_df(sheet, "2025 OPP Income").rename(columns={"Income Amount": "Income"})
+    expense_df = load_sheet_as_df(sheet, "2025 OPP Expenses").rename(columns={"Amount": "Expense"})
 
-    # Standardize column names
-    income_df = income_df.rename(columns={"Income Amount": "Income"})
-    expense_df = expense_df.rename(columns={"Amount": "Expense"})
-    # Merge on Month & Property
-    df = income_df.merge(
-        expense_df,
-        on=["Month", "Property"],
-        how="outer",
-        suffixes=("_inc", "_exp")
-    )
+    # Merge and compute profit
+    df = pd.merge(income_df, expense_df, on=["Month", "Property"], how="outer")
     df["Income"] = df["Income"].fillna(0)
     df["Expense"] = df["Expense"].fillna(0)
     df["Profit"] = df["Income"] - df["Expense"]
 
-    # ── TOTALS SUMMARY ───────────────────────────────────────────────────────
+    # Totals summary
     st.subheader("🏠 Totals by Property")
     totals = df.groupby("Property").agg(
         **{
@@ -32,27 +26,37 @@ def show():
             "Total Profit": ("Profit", "sum"),
         }
     ).reset_index()
+    # Format as currency
+    for col in ["Total Income", "Total Expense", "Total Profit"]:
+        totals[col] = totals[col].apply(lambda x: f"${x:,.2f}")
     st.dataframe(totals, use_container_width=True)
 
-    # Melt for plotting
-    df_melt = df.melt(
-        id_vars=["Month", "Property"],
-        value_vars=["Income", "Expense", "Profit"],
-        var_name="Metric",
-        value_name="Amount"
-    )
+    # Individual property charts with income/expense bars + profit line
+    for prop in df["Property"].unique():
+        prop_df = df[df["Property"] == prop]
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=prop_df["Month"],
+            y=prop_df["Income"],
+            name="Income"
+        ))
+        fig.add_trace(go.Bar(
+            x=prop_df["Month"],
+            y=prop_df["Expense"],
+            name="Expense"
+        ))
+        fig.add_trace(go.Scatter(
+            x=prop_df["Month"],
+            y=prop_df["Profit"],
+            name="Profit",
+            mode="lines+markers"
+        ))
 
-    fig = px.bar(
-        df_melt,
-        x="Month",
-        y="Amount",
-        color="Metric",
-        facet_col="Property",
-        barmode="group",
-        title="Monthly Income, Expense, and Profit by Property",
-        category_orders={"Month": [
-            "January","February","March","April","May","June",
-            "July","August","September","October","November","December"
-        ]},
-    )
-    st.plotly_chart(fig, use_container_width=True)
+        fig.update_layout(
+            title=f"{prop} – Monthly Summary",
+            barmode="group",
+            xaxis_title="Month",
+            yaxis_title="Amount ($)",
+            legend_title="Metric"
+        )
+        st.plotly_chart(fig, use_container_width=True)
