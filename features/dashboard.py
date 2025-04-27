@@ -4,7 +4,7 @@ from utils.google_sheets import get_worksheet
 import plotly.graph_objects as go
 
 def show():
-    st.title("📊 Dashboard Overview with Income Debug")
+    st.title("📊 Dashboard Overview")
 
     sheet_name = "OPP Finance Tracker"
     income_ws = get_worksheet(sheet_name, "2025 OPP Income")
@@ -22,15 +22,33 @@ def show():
     expense_df["Property"] = expense_df.get("Property", "").fillna("").replace("", "Unknown")
     expense_df["Month"] = expense_df["Month"].astype(str).str.strip().str.capitalize()
 
-  
-    monthly_expense = expense_df.groupby(["Month", "Property"])["Amount"].sum().reset_index()
+    # --- COMPUTE MONTHLY TOTALS ---
+    monthly_income = (
+        income_df
+        .groupby(["Month", "Property"])["Income Amount"]
+        .sum()
+        .reset_index()
+    )
+    monthly_expense = (
+        expense_df
+        .groupby(["Month", "Property"])["Amount"]
+        .sum()
+        .reset_index()
+    )
 
-    # --- MERGE & CALCULATE ---
-    summary = pd.merge(monthly_income, monthly_expense, on=["Month", "Property"], how="outer").fillna(0)
+    # --- MERGE & CALCULATE PROFIT ---
+    summary = pd.merge(
+        monthly_income,
+        monthly_expense,
+        on=["Month", "Property"],
+        how="outer"
+    ).fillna(0)
     summary["Profit"] = summary["Income Amount"] - summary["Amount"]
 
-    month_order = ["January", "February", "March", "April", "May", "June",
-                   "July", "August", "September", "October", "November", "December"]
+    month_order = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ]
     summary["Month"] = pd.Categorical(summary["Month"], categories=month_order, ordered=True)
     summary = summary.sort_values(by=["Month", "Property"])
 
@@ -41,5 +59,10 @@ def show():
         fig.add_trace(go.Bar(x=prop_df["Month"], y=prop_df["Income Amount"], name="Income"))
         fig.add_trace(go.Bar(x=prop_df["Month"], y=prop_df["Amount"], name="Expenses"))
         fig.add_trace(go.Scatter(x=prop_df["Month"], y=prop_df["Profit"], name="Profit", mode="lines+markers"))
-        fig.update_layout(title=f"{prop} - Monthly Summary", barmode="group", xaxis_title="Month", yaxis_title="Amount ($)")
+        fig.update_layout(
+            title=f"{prop} - Monthly Summary",
+            barmode="group",
+            xaxis_title="Month",
+            yaxis_title="Amount ($)"
+        )
         st.plotly_chart(fig, use_container_width=True)
