@@ -66,7 +66,6 @@ def show():
         purchaser = st.selectbox("Purchaser", purchaser_list + ["Other"])
         if purchaser == "Other":
             purchaser = st.text_input("Enter Purchaser Name")
-
         item = st.text_input("Item")
         property_location = st.selectbox("Property", ["Florida", "Maine"])
 
