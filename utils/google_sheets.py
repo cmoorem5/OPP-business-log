@@ -27,3 +27,10 @@ def append_row(sheet_name: str, tab_name: str, row_data: list):
     sheet = client.open(sheet_name)
     worksheet = sheet.worksheet(tab_name)
     worksheet.append_row(row_data, value_input_option="USER_ENTERED")
+
+
+def get_worksheet(sheet_name: str, tab_name: str):
+    """Backward-compatible: return raw worksheet object"""
+    client = get_gspread_client()
+    sheet = client.open(sheet_name)
+    return sheet.worksheet(tab_name)
