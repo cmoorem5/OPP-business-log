@@ -2,10 +2,10 @@ import streamlit as st
 from PIL import Image
 from features import dashboard, log_entry, view_entries, receipts, export, debug_credentials, debug_dashboard
 
-# Load logo
-logo = Image.open("assets/logo.jpg")
+# Load new logo
+logo = Image.open("assets/logo-180.png")
 
-# Configure page with logo as favicon and Apple touch icon
+# Configure page with new logo as favicon and Apple touch icon
 st.set_page_config(
     page_title="OPP Finance Tracker",
     page_icon=logo,
@@ -14,7 +14,7 @@ st.set_page_config(
 
 # Inject Apple touch icon for iOS home screen
 st.markdown(
-    '<link rel="apple-touch-icon" href="assets/logo.jpg">',
+    '<link rel="apple-touch-icon" sizes="180x180" href="assets/logo-180.png">',
     unsafe_allow_html=True,
 )
 
