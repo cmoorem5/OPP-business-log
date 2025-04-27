@@ -6,8 +6,6 @@ from features import (
     view_entries,
     receipts,
     export,
-    debug_credentials,
-    debug_dashboard,
 )
 
 # Load icons
@@ -69,8 +67,5 @@ elif page == "Receipts":
     receipts.show()
 elif page == "Data Export":
     export.show()
-elif page == "Debug Credentials":
-    debug_credentials.show()
-elif page == "Debug Dashboard":
-    debug_dashboard.show()
+
 
