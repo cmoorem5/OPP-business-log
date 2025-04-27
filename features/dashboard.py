@@ -15,23 +15,7 @@ def show():
     df = pd.merge(income_df, expense_df, on=["Month", "Property"], how="outer")
     df["Income"] = df["Income"].fillna(0)
     df["Expense"] = df["Expense"].fillna(0)
-    df["Profit"] = df["Income"] - df["Expense"]
-
-    # Totals summary
-    st.subheader("🏠 Totals by Property")
-    totals = df.groupby("Property").agg(
-        **{
-            "Total Income": ("Income", "sum"),
-            "Total Expense": ("Expense", "sum"),
-            "Total Profit": ("Profit", "sum"),
-        }
-    ).reset_index()
-    # Format as currency
-    for col in ["Total Income", "Total Expense", "Total Profit"]:
-        totals[col] = totals[col].apply(lambda x: f"${x:,.2f}")
-    st.dataframe(totals, use_container_width=True)
-
-    # Individual property charts with income/expense bars + profit line
+    df["Profit"] = df["Income"] - df["Expense"]    # Totals summary    # Individual property charts with income/expense bars + profit line
     for prop in df["Property"].unique():
         prop_df = df[df["Property"] == prop]
         fig = go.Figure()
@@ -52,11 +36,14 @@ def show():
             mode="lines+markers"
         ))
 
+        
         fig.update_layout(
             title=f"{prop} – Monthly Summary",
             barmode="group",
             xaxis_title="Month",
             yaxis_title="Amount ($)",
-            legend_title="Metric"
+            legend_title="Metric",
+            
         )
+
         st.plotly_chart(fig, use_container_width=True)
