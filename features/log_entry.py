@@ -82,6 +82,3 @@ def show():
         st.info("Please select an entry type to get started.")
 
 
-
-    else:
-        st.info("Income entry handling can be added here as needed.")
