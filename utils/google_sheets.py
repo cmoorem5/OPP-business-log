@@ -4,7 +4,6 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 
-# same as before
 SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
@@ -18,7 +17,13 @@ def get_gspread_client():
 
 @st.cache_data(ttl=300, show_spinner=False)
 def load_sheet_as_df(sheet_name: str, tab_name: str) -> pd.DataFrame:
-    client    = get_gspread_client()
-    sheet     = client.open(sheet_name)
+    client = get_gspread_client()
+    sheet = client.open(sheet_name)
     worksheet = sheet.worksheet(tab_name)
     return pd.DataFrame(worksheet.get_all_records())
+
+def append_row(sheet_name: str, tab_name: str, row_data: list):
+    client = get_gspread_client()
+    sheet = client.open(sheet_name)
+    worksheet = sheet.worksheet(tab_name)
+    worksheet.append_row(row_data, value_input_option="USER_ENTERED")

@@ -1,5 +1,7 @@
 import pandas as pd
+import streamlit as st
 
+@st.cache_data(ttl=600, show_spinner=False)
 def load_excel_data(sheet, path="data/LLC Income and Expense Tracker.xlsx"):
     df = pd.read_excel(path, sheet_name=sheet)
     if "Income Amount" in df.columns:

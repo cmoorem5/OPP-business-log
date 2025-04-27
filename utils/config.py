@@ -1,5 +1,3 @@
-# utils/config.py
-
 from datetime import date
 
 # Map years → months → Drive folder IDs
@@ -18,9 +16,6 @@ MONTHLY_FOLDERS = {
 }
 
 def get_drive_folder_id(entry_date: date) -> str | None:
-    """
-    Return the Drive folder ID for the given date,
-    or None if not configured.
-    """
+    """Return the Drive folder ID for the given date, or None if not configured."""
     year_map = MONTHLY_FOLDERS.get(entry_date.year, {})
     return year_map.get(entry_date.strftime("%B"))
