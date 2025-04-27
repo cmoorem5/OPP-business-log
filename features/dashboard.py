@@ -22,11 +22,7 @@ def show():
     expense_df["Property"] = expense_df.get("Property", "").fillna("").replace("", "Unknown")
     expense_df["Month"] = expense_df["Month"].astype(str).str.strip().str.capitalize()
 
-    # --- DEBUG OUTPUT ---
-    st.markdown("### 💵 Debug: Grouped Income Totals")
-    monthly_income = income_df.groupby(["Month", "Property"])["Income Amount"].sum().reset_index()
-    st.dataframe(monthly_income)
-
+  
     monthly_expense = expense_df.groupby(["Month", "Property"])["Amount"].sum().reset_index()
 
     # --- MERGE & CALCULATE ---
