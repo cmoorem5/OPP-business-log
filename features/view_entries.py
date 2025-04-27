@@ -5,7 +5,7 @@ def show():
     st.title("📂 View Logged Entries")
 
     sheet = "OPP Finance Tracker"
-    income_df  = load_sheet_as_df(sheet, "2025 OPP Income")
+    income_df = load_sheet_as_df(sheet, "2025 OPP Income")
     expense_df = load_sheet_as_df(sheet, "2025 OPP Expenses")
 
     view_option = st.radio("View", ["Income", "Expense"], key="view_option")
@@ -14,9 +14,9 @@ def show():
         st.dataframe(income_df, use_container_width=True)
     else:
         st.subheader("💸 Expense Entries")
+        # Ensure clickable links render in dataframe
         if "Receipt Link" in expense_df.columns:
             expense_df["Receipt Link"] = expense_df["Receipt Link"].apply(
-                lambda url: f"[View Receipt]({url})" if isinstance(url, str) else ""
+                lambda url: f'=HYPERLINK("{url}", "View Receipt")' if isinstance(url, str) else ""
             )
-        st.markdown("### Expense Log with Clickable Receipt Links")
-        st.markdown(expense_df.to_markdown(index=False), unsafe_allow_html=True)
+        st.dataframe(expense_df, use_container_width=True)
