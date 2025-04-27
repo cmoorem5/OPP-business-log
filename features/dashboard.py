@@ -23,6 +23,17 @@ def show():
     df["Expense"] = df["Expense"].fillna(0)
     df["Profit"] = df["Income"] - df["Expense"]
 
+    # ── TOTALS SUMMARY ───────────────────────────────────────────────────────
+    st.subheader("🏠 Totals by Property")
+    totals = df.groupby("Property").agg(
+        **{
+            "Total Income": ("Income", "sum"),
+            "Total Expense": ("Expense", "sum"),
+            "Total Profit": ("Profit", "sum"),
+        }
+    ).reset_index()
+    st.dataframe(totals, use_container_width=True)
+
     # Melt for plotting
     df_melt = df.melt(
         id_vars=["Month", "Property"],
