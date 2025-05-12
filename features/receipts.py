@@ -1,38 +1,65 @@
 import streamlit as st
-import os
+from datetime import date, datetime
 import tempfile
-from datetime import date
+import os
 
 from utils.google_drive import upload_file_to_drive
-from utils.config       import get_drive_folder_id
+from utils.config import get_drive_folder_id
 
 def show():
-    st.markdown("## 📸 Upload Receipt to Monthly Folder")
+    """Upload a receipt file into the proper Google Drive folder by date."""
+    st.title("📸 Upload Receipt to Drive")
 
-    uploaded_file = st.file_uploader("Choose a receipt file", type=["pdf","png","jpg","jpeg"], key="receipt_uploader")
-    receipt_date  = st.date_input("Date of Receipt", value=date.today(), key="receipt_date")
+    # ─── Date Input & Validation ──────────────────────────────────────────
+    receipt_date = st.date_input("Date of Receipt", date.today(), key="receipt_date")
     if receipt_date > date.today():
         st.error("❗ Date cannot be in the future.")
         return
 
-    if uploaded_file:
-        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-            tmp_file.write(uploaded_file.getbuffer())
-            tmp_file_path = tmp_file.name
+    # ─── File Uploader ────────────────────────────────────────────────────
+    uploaded_file = st.file_uploader(
+        "Choose a receipt file",
+        type=["pdf", "png", "jpg", "jpeg"],
+        key="receipt_uploader"
+    )
+    if not uploaded_file:
+        return  # nothing to do yet
 
-        try:
+    # ─── Save temp file & Upload ─────────────────────────────────────────
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(uploaded_file.getbuffer())
+        tmp_path = tmp.name
+
+    try:
+        with st.spinner("Finding Drive folder..."):
             folder_id = get_drive_folder_id(receipt_date)
-            if not folder_id:
-                st.warning(f"No folder configured for {receipt_date.year} {receipt_date.strftime('%B')}. File not uploaded.")
-                return
 
-            file_id = upload_file_to_drive(tmp_file_path, uploaded_file.name, folder_id)
-            st.success(f"✅ File uploaded to {receipt_date.strftime('%B')} {receipt_date.year} folder.")
-            drive_url = f"https://drive.google.com/file/d/{file_id}/view"
-            st.markdown(f"📁 [View file in Drive]({drive_url})", unsafe_allow_html=True)
+        if not folder_id:
+            st.warning(
+                f"No folder configured for {receipt_date.strftime('%B %Y')}. "
+                "Receipt not uploaded."
+            )
+            return
 
-        except Exception as e:
-            st.error(f"Failed to upload: {e}")
+        with st.spinner("Uploading receipt to Drive..."):
+            file_id = upload_file_to_drive(tmp_path, uploaded_file.name, folder_id)
 
-        finally:
-            os.remove(tmp_file_path)
+        st.success("✅ File successfully uploaded!")
+        drive_url = f"https://drive.google.com/file/d/{file_id}/view"
+        st.markdown(f"📁 [View in Drive]({drive_url})")
+
+    except Exception as e:
+        st.error(f"Failed to upload receipt: {e}")
+
+    finally:
+        os.remove(tmp_path)
+
+    # ─── Custom footer ─────────────────────────────────────────────────────
+    st.markdown("---")
+    last_updated = datetime.now().strftime("%B %d, %Y %I:%M %p")
+    footer_md = f"""
+    <div style="text-align:center; font-size:0.85em; color:gray;">
+      Oceanview Property Partners • v1.3.0 • Last updated: {last_updated}
+    </div>
+    """
+    st.markdown(footer_md, unsafe_allow_html=True)
