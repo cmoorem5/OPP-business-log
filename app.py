@@ -15,10 +15,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Sidebar: use the larger logo image (now named favicon.jpg)
-sidebar_logo = Image.open("assets/favicon.jpg")
+# Sidebar: use the larger logo image
+sidebar_logo = Image.open("assets/favicon.png")
 st.sidebar.image(sidebar_logo, use_container_width=True)
-
 st.sidebar.title("📘 OPP Finance Tracker")
 
 # Navigation
