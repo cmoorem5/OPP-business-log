@@ -40,8 +40,7 @@ def show():
     )
     # Date range filter
     if "Date" in df.columns:
-        date_min = df["Date"].min()
-        date_max = df["Date"].max()
+        date_min, date_max = df["Date"].min(), df["Date"].max()
         date_range = st.date_input(
             "Date range", [date_min, date_max]
         )
@@ -56,13 +55,23 @@ def show():
     else:
         statuses = None
 
-    # Apply filters
+    # Category filter (only for Expense)
+    if filter_status and "Category" in df.columns:
+        categories = st.multiselect(
+            "Category", df["Category"].unique(), default=df["Category"].unique()
+        )
+    else:
+        categories = None
+
+    # Apply filters to DataFrame
     mask = df["Property"].isin(props)
     if date_range:
         mask &= df["Date"] >= pd.to_datetime(date_range[0])
         mask &= df["Date"] <= pd.to_datetime(date_range[1])
     if statuses is not None:
         mask &= df["Complete"].isin(statuses)
+    if categories is not None:
+        mask &= df["Category"].isin(categories)
 
     filtered = df.loc[mask]
 
@@ -73,3 +82,4 @@ def show():
         st.markdown(html, unsafe_allow_html=True)
     else:
         st.dataframe(filtered, use_container_width=True)
+
