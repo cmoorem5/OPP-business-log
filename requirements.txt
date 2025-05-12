@@ -1,11 +1,9 @@
-# Core
-streamlit
-pandas
-openpyxl
-plotly
+streamlit==1.45.0
+pandas==2.2.3
+openpyxl==3.1.5
+plotly==6.0.1
 
-# Google Sheets & Drive
-gspread
-google-auth
-google-api-python-client
-tabulate
+gspread==6.2.0
+google-auth==2.40.1
+google-api-python-client==2.169.0
+tabulate==0.9.0
