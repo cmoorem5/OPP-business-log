@@ -5,28 +5,29 @@ from features import dashboard, log_entry, view_entries, receipts, export
 # Page configuration
 st.set_page_config(
     page_title="OPP Finance Tracker",
-    page_icon="assets/favicon.png",
+    page_icon="assets/logo-180.png",  # small icon for browser tab
     layout="wide",
 )
 
-# Optional: Apple touch icon for home screen bookmarks
+# Optional: Apple touch icon for bookmarks/home screen
 st.markdown(
-    """
-    <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon.png">
-    """,
+    '<link rel="apple-touch-icon" sizes="180x180" href="assets/logo-180.png">',
     unsafe_allow_html=True,
 )
 
-# Sidebar: Logo and navigation
-sidebar_logo = Image.open("assets/logo-180.png")
+# Sidebar: use the larger logo image (now named favicon.jpg)
+sidebar_logo = Image.open("assets/favicon.jpg")
 st.sidebar.image(sidebar_logo, use_container_width=True)
+
 st.sidebar.title("📘 OPP Finance Tracker")
 
+# Navigation
 page = st.sidebar.radio(
     "Navigate",
     ["Dashboard", "Rental Entry", "View Entries", "Receipts", "Data Export"]
 )
 
+# Version history expander
 with st.sidebar.expander("🕒 Version History"):
     st.markdown(
         """
