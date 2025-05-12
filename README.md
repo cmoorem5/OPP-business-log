@@ -1,18 +1,21 @@
 # OPP Finance App
 
-A polished and modular Streamlit app to log income, expenses, upload receipts, and view profit/loss charts for your investment property.
+A polished and modular Streamlit application to track income, expenses, upload receipts, and view profit/loss for your investment properties, with enhanced filtering, theming, caching, and version history.
 
-## Features
+## Key Features
 
-- Income and expense logging
-- Receipt uploads
-- Dashboard with monthly profit/loss
-- CSV export
-- Clean UI with modular architecture
+- **Income & Expense Logging**  
+- **Receipt Uploads**  
+- **Dashboard** with monthly profit/loss charts  
+- **View Entries** page with:
+  - Property, date‑range, status, and category filters  
+  - Clickable receipt links  
+- **In‑page Search & Filters** for slicing data on-the-fly  
+- **Custom Theming** via injected CSS for branded fonts, colors, and shadows  
+- **Persistent Footer** showing company name, app version, and “last updated” timestamp  
+- **CSV Export** of any filtered view
 
-## How to Run
+## Installation
 
 ```bash
 pip install -r requirements.txt
-streamlit run app.py
-```
