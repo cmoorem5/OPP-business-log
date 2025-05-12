@@ -1,1 +1,19 @@
+name: Keep Streamlit Awake
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '*/5 * * * *'
+
+jobs:
+  keep-awake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit App
+        run: |
+          echo "Ping @ $(date)"
+          http_status=$(curl -o /dev/null -s -w "%{http_code}" https://opp-business-log-gjxekgwnpjmruvuvkrapfv.streamlit.app/)
+          echo "HTTP status: $http_status"
 
