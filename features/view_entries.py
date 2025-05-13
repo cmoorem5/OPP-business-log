@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import date
 from utils.google_sheets import load_sheet_as_df
 
 def show():
@@ -36,10 +37,15 @@ def show():
     properties = df["Property"].unique().tolist()
     props = st.multiselect("Property", properties, default=properties)
 
-    # Date range filter (if present)
+    # Date range filter (default to current month)
     if "Date" in df.columns:
-        date_min, date_max = df["Date"].min(), df["Date"].max()
-        date_range = st.date_input("Date range", [date_min, date_max])
+        today = date.today()
+        first_of_month = today.replace(day=1)
+        date_range = st.date_input(
+            "Date range",
+            [first_of_month, today],
+            key="date_range"
+        )
     else:
         date_range = None
 
