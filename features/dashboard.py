@@ -1,5 +1,3 @@
-# features/dashboard.py
-
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -9,7 +7,7 @@ from utils.google_sheets import load_sheet_as_df
 def show():
     st.title("📊 Dashboard Overview")
 
-    # Load and aggregate data (no more sheet_name argument)
+    # Pull in income and expense tabs by name
     income_df = (
         load_sheet_as_df("2025 OPP Income")
         .rename(columns={"Income Amount": "Income"})
@@ -19,23 +17,24 @@ def show():
         .rename(columns={"Amount": "Expense"})
     )
 
-    # Summarize by Property & Month
-    income_monthly = (
-        income_df.groupby(["Property", "Month"], as_index=False)["Income"].sum()
-    )
-    expense_monthly = (
-        expense_df.groupby(["Property", "Month"], as_index=False)["Expense"].sum()
-    )
+    # Aggregate
+    income_monthly = income_df.groupby(
+        ["Property", "Month"], as_index=False
+    )["Income"].sum()
+    expense_monthly = expense_df.groupby(
+        ["Property", "Month"], as_index=False
+    )["Expense"].sum()
 
-    # Merge and compute profit
+    # Merge & compute profit
     df = pd.merge(
-        income_monthly, expense_monthly,
+        income_monthly,
+        expense_monthly,
         on=["Property", "Month"],
         how="outer"
     ).fillna(0)
     df["Profit"] = df["Income"] - df["Expense"]
 
-    # Ensure months sort in calendar order
+    # Ensure calendar order for months
     MONTHS = [
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
@@ -43,32 +42,20 @@ def show():
     df["Month"] = pd.Categorical(df["Month"], categories=MONTHS, ordered=True)
     df = df.sort_values("Month")
 
-    # Build Plotly figure with dual Y‑axes
+    # Build the figure
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     for prop in df["Property"].unique():
         prop_df = df[df["Property"] == prop]
         fig.add_trace(
-            go.Bar(
-                x=prop_df["Month"],
-                y=prop_df["Income"],
-                name=f"{prop} Income"
-            ),
+            go.Bar(x=prop_df["Month"], y=prop_df["Income"], name=f"{prop} Income"),
             secondary_y=False,
         )
         fig.add_trace(
-            go.Bar(
-                x=prop_df["Month"],
-                y=prop_df["Expense"],
-                name=f"{prop} Expense"
-            ),
+            go.Bar(x=prop_df["Month"], y=prop_df["Expense"], name=f"{prop} Expense"),
             secondary_y=False,
         )
         fig.add_trace(
-            go.Line(
-                x=prop_df["Month"],
-                y=prop_df["Profit"],
-                name=f"{prop} Profit"
-            ),
+            go.Line(x=prop_df["Month"], y=prop_df["Profit"], name=f"{prop} Profit"),
             secondary_y=True,
         )
 
@@ -78,12 +65,6 @@ def show():
         yaxis_title="Income / Expense ($)",
         legend_title="Property Metrics"
     )
-    fig.update_yaxes(
-        title_text="Profit ($)",
-        secondary_y=True
-    )
+    fig.update_yaxes(title_text="Profit ($)", secondary_y=True)
 
     st.plotly_chart(fig, use_container_width=True)
-
-    """
-    st.markdown(footer_md, unsafe_allow_html=True)
