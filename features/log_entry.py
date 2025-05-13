@@ -81,4 +81,106 @@ def show():
     else:
         # ─── EXPENSE FORM ───────────────────────────────────────────────
         with st.spinner("Loading dropdown data..."):
-            purchasers_df_
+            purchasers_df = load_sheet_as_df("Purchasers")
+            purchaser_list = sorted(
+                purchasers_df["Purchaser"].dropna().unique().tolist()
+            )
+            purchaser_list.append("Other")
+
+            expenses_df = load_sheet_as_df("2025 OPP Expenses")
+            category_list = sorted(
+                expenses_df.get("Category", pd.Series([], dtype=str))
+                .dropna()
+                .unique()
+                .tolist()
+            )
+            category_list.append("Other")
+
+        with st.form("expense_form", clear_on_submit=True):
+            entry_date = st.date_input("Date", date.today(), key="expense_date")
+            amount = st.number_input("Amount", min_value=0.0, step=0.01, key="expense_amount")
+
+            purchaser = st.selectbox("Purchaser", purchaser_list, key="purchaser")
+            if purchaser == "Other":
+                purchaser = st.text_input("Enter Purchaser Name", key="purchaser_other")
+
+            item = st.text_input("Item/Description", key="item")
+            property_location = st.selectbox(
+                "Property",
+                ["Florida", "Maine"],
+                key="expense_property"
+            )
+
+            category = st.selectbox("Category", category_list, key="category")
+            if category == "Other":
+                category = st.text_input("Enter Category", key="category_other")
+
+            comments = st.text_area("Comments", key="comments")
+            uploaded_file = st.file_uploader(
+                "Upload Receipt File",
+                type=["pdf", "png", "jpg", "jpeg"],
+                key="receipt_uploader"
+            )
+
+            submitted = st.form_submit_button("Submit Expense Entry")
+
+        if submitted:
+            errors = []
+            if entry_date > date.today():
+                errors.append("❗ Date cannot be in the future.")
+            if amount <= 0:
+                errors.append("❗ Amount must be greater than zero.")
+
+            if errors:
+                for err in errors:
+                    st.error(err)
+            else:
+                receipt_link = ""
+                if uploaded_file:
+                    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                        tmp.write(uploaded_file.getbuffer())
+                        tmp_path = tmp.name
+                    try:
+                        with st.spinner("Uploading receipt to Drive..."):
+                            folder_id = get_drive_folder_id(entry_date)
+                            if folder_id:
+                                file_id = upload_file_to_drive(
+                                    tmp_path, uploaded_file.name, folder_id
+                                )
+                                receipt_link = (
+                                    f"https://drive.google.com/file/d/{file_id}/view"
+                                )
+                            else:
+                                st.warning(
+                                    f"No folder configured for "
+                                    f"{entry_date.strftime('%B %Y')} — "
+                                    "receipt not uploaded."
+                                )
+                    finally:
+                        os.remove(tmp_path)
+
+                month = entry_date.strftime("%B")
+                row = [
+                    month,
+                    entry_date.strftime("%Y-%m-%d"),
+                    purchaser,
+                    item,
+                    property_location,
+                    category,
+                    amount,
+                    comments,
+                    receipt_link,
+                ]
+                with st.spinner("Submitting expense entry..."):
+                    append_row("2025 OPP Expenses", row)
+                st.success("✅ Expense entry submitted!")
+
+    # ─── Custom footer ─────────────────────────────────────────────────────
+    st.markdown("---")
+    last_updated = datetime.now().strftime("%B %d, %Y %I:%M %p")
+    footer = f"""
+    <div style="text-align:center; font-size:0.85em; color:gray;">
+      Oceanview Property Partners • v1.3.0 • Last updated: {last_updated}
+    </div>
+    """
+    st.markdown(footer, unsafe_allow_html=True)
