@@ -1,3 +1,5 @@
+# features/dashboard.py
+
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -7,7 +9,7 @@ from utils.google_sheets import load_sheet_as_df
 def show():
     st.title("📊 Dashboard Overview")
 
-    # Pull in income and expense tabs by name
+    # Load and rename
     income_df = (
         load_sheet_as_df("2025 OPP Income")
         .rename(columns={"Income Amount": "Income"})
@@ -17,13 +19,17 @@ def show():
         .rename(columns={"Amount": "Expense"})
     )
 
-    # Aggregate
-    income_monthly = income_df.groupby(
-        ["Property", "Month"], as_index=False
-    )["Income"].sum()
-    expense_monthly = expense_df.groupby(
-        ["Property", "Month"], as_index=False
-    )["Expense"].sum()
+    # Coerce to numeric (remove any stray strings), fill NaNs with 0
+    income_df["Income"] = pd.to_numeric(income_df["Income"], errors="coerce").fillna(0)
+    expense_df["Expense"] = pd.to_numeric(expense_df["Expense"], errors="coerce").fillna(0)
+
+    # Aggregate by Property & Month
+    income_monthly = (
+        income_df.groupby(["Property", "Month"], as_index=False)["Income"].sum()
+    )
+    expense_monthly = (
+        expense_df.groupby(["Property", "Month"], as_index=False)["Expense"].sum()
+    )
 
     # Merge & compute profit
     df = pd.merge(
@@ -34,7 +40,7 @@ def show():
     ).fillna(0)
     df["Profit"] = df["Income"] - df["Expense"]
 
-    # Ensure calendar order for months
+    # Ensure calendar ordering of months
     MONTHS = [
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
@@ -42,7 +48,7 @@ def show():
     df["Month"] = pd.Categorical(df["Month"], categories=MONTHS, ordered=True)
     df = df.sort_values("Month")
 
-    # Build the figure
+    # Build the Plotly figure
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     for prop in df["Property"].unique():
         prop_df = df[df["Property"] == prop]
@@ -68,3 +74,4 @@ def show():
     fig.update_yaxes(title_text="Profit ($)", secondary_y=True)
 
     st.plotly_chart(fig, use_container_width=True)
+
