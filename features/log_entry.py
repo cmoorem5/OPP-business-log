@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from datetime import date, datetime
 import tempfile
 import os
@@ -63,7 +64,7 @@ def show():
                     property_location,
                     rental_range,
                     source,
-                    "",            # placeholder for any unused column
+                    "",            # placeholder for unused column
                     amount,
                     payment_status,
                     "",            # placeholder
@@ -88,12 +89,12 @@ def show():
             purchaser_list.append("Other")
 
             expenses_df = load_sheet_as_df("2025 OPP Expenses")
-            category_list = sorted(
-                expenses_df.get("Category", pd.Series([], dtype=str))
-                .dropna()
-                .unique()
-                .tolist()
-            )
+            if "Category" in expenses_df.columns:
+                category_list = sorted(
+                    expenses_df["Category"].dropna().unique().tolist()
+                )
+            else:
+                category_list = []
             category_list.append("Other")
 
         with st.form("expense_form", clear_on_submit=True):
