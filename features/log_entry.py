@@ -6,7 +6,7 @@ import tempfile
 import os
 import pandas as pd
 
-from utils.google_sheets import load_sheet_as_df, get_worksheet
+from utils.google_sheets import get_worksheet
 from utils.google_drive import upload_file_to_drive
 from utils.config import get_drive_folder_id
 
@@ -19,19 +19,32 @@ def show():
     if entry_type == "Income":
         # ─── INCOME FORM ───────────────────────────────────────────────
         with st.form("income_form", clear_on_submit=True):
-            entry_date       = st.date_input("Date", date.today(), key="income_date")
-            month            = entry_date.strftime("%B")
-            rental_dates     = st.date_input(
+            payment_date       = st.date_input(
+                "Payment Date (when funds received)",
+                date.today(),
+                key="payment_date"
+            )
+            month              = payment_date.strftime("%B")
+            rental_dates       = st.date_input(
                 "Rental Date Range",
                 (date.today(), date.today()),
                 key="rental_dates"
             )
-            rental_range     = f"{rental_dates[0]} – {rental_dates[1]}"
-            property_location = st.selectbox("Property", ["Florida", "Maine"], key="income_property")
-            source           = st.text_input("Income Source", key="income_source")
-            invoice_no       = st.text_input("Description/Invoice No.", key="invoice_no")
-            amount           = st.number_input("Amount", min_value=0.0, step=0.01, key="income_amount")
-            status           = st.selectbox(
+            rental_range       = f"{rental_dates[0]} – {rental_dates[1]}"
+            property_location  = st.selectbox(
+                "Property",
+                ["Florida", "Maine"],
+                key="income_property"
+            )
+            source             = st.text_input("Income Source", key="income_source")
+            invoice_no         = st.text_input("Description/Invoice No.", key="invoice_no")
+            amount             = st.number_input(
+                "Amount",
+                min_value=0.0,
+                step=0.01,
+                key="income_amount"
+            )
+            status             = st.selectbox(
                 "Complete",
                 ["Paid", "Cancelled", "PMT Due", "Downpayment Received"],
                 key="income_status"
@@ -49,15 +62,15 @@ def show():
 
         if submitted:
             errors = []
-            if entry_date > date.today():
-                errors.append("❗ Date cannot be in the future.")
+            if payment_date > date.today():
+                errors.append("❗ Payment date cannot be in the future.")
             if amount <= 0:
                 errors.append("❗ Amount must be greater than zero.")
             if errors:
                 for e in errors:
                     st.error(e)
             else:
-                # Build a dict of column→value
+                # Dynamic header lookup & row assembly
                 ws = get_worksheet("2025 OPP Income")
                 headers = ws.row_values(1)
                 row_dict = {
@@ -76,7 +89,6 @@ def show():
                     "Zip": renter_zip,
                     "Email": renter_email,
                 }
-                # Assemble row in header order
                 row = [row_dict.get(col, "") for col in headers]
                 with st.spinner("Submitting income entry..."):
                     ws.append_row(row, value_input_option="USER_ENTERED")
@@ -86,19 +98,23 @@ def show():
         # ─── EXPENSE FORM ───────────────────────────────────────────────
         with st.spinner("Loading dropdown data..."):
             purchasers_df = load_sheet_as_df("Purchasers")
-            purchaser_list = sorted(purchasers_df["Purchaser"].dropna().unique().tolist())
+            purchaser_list = sorted(
+                purchasers_df["Purchaser"].dropna().unique().tolist()
+            )
             purchaser_list.append("Other")
 
             expenses_df = load_sheet_as_df("2025 OPP Expenses")
             if "Category" in expenses_df.columns:
-                category_list = sorted(expenses_df["Category"].dropna().unique().tolist())
+                category_list = sorted(
+                    expenses_df["Category"].dropna().unique().tolist()
+                )
             else:
                 category_list = []
             category_list.append("Other")
 
         with st.form("expense_form", clear_on_submit=True):
-            entry_date = st.date_input("Date", date.today(), key="expense_date")
-            purchaser  = st.selectbox("Purchaser", purchaser_list, key="purchaser")
+            entry_date  = st.date_input("Date", date.today(), key="expense_date")
+            purchaser   = st.selectbox("Purchaser", purchaser_list, key="purchaser")
             if purchaser == "Other":
                 purchaser = st.text_input("Enter Purchaser Name", key="purchaser_other")
 
@@ -108,7 +124,7 @@ def show():
             if category == "Other":
                 category = st.text_input("Enter Category", key="category_other")
 
-            amount = st.number_input("Amount", min_value=0.0, step=0.01, key="expense_amount")
+            amount        = st.number_input("Amount", min_value=0.0, step=0.01, key="expense_amount")
             comments      = st.text_area("Comments", key="comments")
             uploaded_file = st.file_uploader(
                 "Upload Receipt File", type=["pdf", "png", "jpg", "jpeg"], key="receipt_uploader"
@@ -142,7 +158,6 @@ def show():
                     finally:
                         os.remove(tmp_path)
 
-                # Dynamic append for expenses
                 ws = get_worksheet("2025 OPP Expenses")
                 headers = ws.row_values(1)
                 row_dict = {
