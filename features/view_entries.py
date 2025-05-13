@@ -22,12 +22,12 @@ def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
 def show():
     st.title("📂 View Logged Entries")
 
-    # — Refresh button —
+    # 🔄 Refresh clears the cache for load_sheet_as_df and reloads below
     if st.button("🔄 Refresh Data"):
-        st.cache_data.clear()           # clear all @st.cache_data caches
-        st.experimental_rerun()         # immediately rerun to pick up fresh data
+        load_sheet_as_df.clear()
+        st.experimental_rerun()
 
-    # Load & clean
+    # Load & clean sheets
     income_df  = _clean_df(load_sheet_as_df("2025 OPP Income"))
     expense_df = _clean_df(load_sheet_as_df("2025 OPP Expenses"))
 
@@ -36,7 +36,7 @@ def show():
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-    # View selector
+    # Choose view
     choice = st.radio("View", ["Income", "Expense"], key="view_option")
     if choice == "Income":
         st.subheader("💰 Income Entries")
@@ -57,7 +57,6 @@ def show():
         default=df["Property"].dropna().unique().tolist()
     )
 
-    # Date range defaults to current month
     if "Date" in df.columns:
         today = date.today()
         first_of_month = today.replace(day=1)
@@ -69,21 +68,21 @@ def show():
     else:
         date_range = None
 
-    statuses = (
-        st.multiselect(
+    statuses = None
+    if is_expense and "Complete" in df.columns:
+        statuses = st.multiselect(
             "Status",
             df["Complete"].dropna().unique().tolist(),
             default=df["Complete"].dropna().unique().tolist()
-        ) if is_expense and "Complete" in df.columns else None
-    )
+        )
 
-    categories = (
-        st.multiselect(
+    categories = None
+    if is_expense and "Category" in df.columns:
+        categories = st.multiselect(
             "Category",
             df["Category"].dropna().unique().tolist(),
             default=df["Category"].dropna().unique().tolist()
-        ) if is_expense and "Category" in df.columns else None
-    )
+        )
 
     # --- Apply filters ---
     mask = df["Property"].isin(props)
