@@ -1,10 +1,12 @@
+# features/log_entry.py
+
 import streamlit as st
-import pandas as pd
 from datetime import date, datetime
 import tempfile
 import os
+import pandas as pd
 
-from utils.google_sheets import load_sheet_as_df, append_row
+from utils.google_sheets import load_sheet_as_df, get_worksheet
 from utils.google_drive import upload_file_to_drive
 from utils.config import get_drive_folder_id
 
@@ -17,32 +19,31 @@ def show():
     if entry_type == "Income":
         # ─── INCOME FORM ───────────────────────────────────────────────
         with st.form("income_form", clear_on_submit=True):
-            entry_date = st.date_input("Date", date.today(), key="income_date")
-            amount = st.number_input("Amount", min_value=0.0, step=0.01, key="income_amount")
-            source = st.text_input("Income Source", key="income_source")
-            rental_dates = st.date_input(
+            entry_date       = st.date_input("Date", date.today(), key="income_date")
+            month            = entry_date.strftime("%B")
+            rental_dates     = st.date_input(
                 "Rental Date Range",
                 (date.today(), date.today()),
                 key="rental_dates"
             )
-            property_location = st.selectbox(
-                "Property",
-                ["Florida", "Maine"],
-                key="income_property"
-            )
-            payment_status = st.selectbox(
-                "Payment Status",
+            rental_range     = f"{rental_dates[0]} – {rental_dates[1]}"
+            property_location = st.selectbox("Property", ["Florida", "Maine"], key="income_property")
+            source           = st.text_input("Income Source", key="income_source")
+            invoice_no       = st.text_input("Description/Invoice No.", key="invoice_no")
+            amount           = st.number_input("Amount", min_value=0.0, step=0.01, key="income_amount")
+            status           = st.selectbox(
+                "Complete",
                 ["Paid", "Cancelled", "PMT Due", "Downpayment Received"],
-                key="payment_status"
+                key="income_status"
             )
 
             st.markdown("#### 👤 Renter Contact Info (Optional)")
-            renter_name    = st.text_input("Renter Name", key="renter_name")
-            renter_email   = st.text_input("Renter Email", key="renter_email")
+            renter_name    = st.text_input("Name", key="renter_name")
             renter_address = st.text_input("Address", key="renter_address")
             renter_city    = st.text_input("City", key="renter_city")
             renter_state   = st.text_input("State", key="renter_state")
-            renter_zip     = st.text_input("Zip Code", key="renter_zip")
+            renter_zip     = st.text_input("Zip", key="renter_zip")
+            renter_email   = st.text_input("Email", key="renter_email")
 
             submitted = st.form_submit_button("Submit Income Entry")
 
@@ -52,75 +53,65 @@ def show():
                 errors.append("❗ Date cannot be in the future.")
             if amount <= 0:
                 errors.append("❗ Amount must be greater than zero.")
-
             if errors:
-                for err in errors:
-                    st.error(err)
+                for e in errors:
+                    st.error(e)
             else:
-                month        = entry_date.strftime("%B")
-                rental_range = f"{rental_dates[0]} - {rental_dates[1]}"
-                row = [
-                    month,
-                    property_location,
-                    rental_range,
-                    source,
-                    "",            # placeholder for unused column
-                    amount,
-                    payment_status,
-                    "",            # placeholder
-                    renter_name,
-                    renter_address,
-                    renter_city,
-                    renter_state,
-                    renter_zip,
-                    renter_email,
-                ]
+                # Build a dict of column→value
+                ws = get_worksheet("2025 OPP Income")
+                headers = ws.row_values(1)
+                row_dict = {
+                    "Month": month,
+                    "Property": property_location,
+                    "Rental Dates": rental_range,
+                    "Income Source": source,
+                    "Description/Invoice No.": invoice_no,
+                    "Income Amount": amount,
+                    "Complete": status,
+                    "Notes": "",
+                    "Name": renter_name,
+                    "Address": renter_address,
+                    "City": renter_city,
+                    "State": renter_state,
+                    "Zip": renter_zip,
+                    "Email": renter_email,
+                }
+                # Assemble row in header order
+                row = [row_dict.get(col, "") for col in headers]
                 with st.spinner("Submitting income entry..."):
-                    append_row("2025 OPP Income", row)
+                    ws.append_row(row, value_input_option="USER_ENTERED")
                 st.success("✅ Income entry submitted!")
 
     else:
         # ─── EXPENSE FORM ───────────────────────────────────────────────
         with st.spinner("Loading dropdown data..."):
             purchasers_df = load_sheet_as_df("Purchasers")
-            purchaser_list = sorted(
-                purchasers_df["Purchaser"].dropna().unique().tolist()
-            )
+            purchaser_list = sorted(purchasers_df["Purchaser"].dropna().unique().tolist())
             purchaser_list.append("Other")
 
             expenses_df = load_sheet_as_df("2025 OPP Expenses")
             if "Category" in expenses_df.columns:
-                category_list = sorted(
-                    expenses_df["Category"].dropna().unique().tolist()
-                )
+                category_list = sorted(expenses_df["Category"].dropna().unique().tolist())
             else:
                 category_list = []
             category_list.append("Other")
 
         with st.form("expense_form", clear_on_submit=True):
             entry_date = st.date_input("Date", date.today(), key="expense_date")
-            amount = st.number_input("Amount", min_value=0.0, step=0.01, key="expense_amount")
-
-            purchaser = st.selectbox("Purchaser", purchaser_list, key="purchaser")
+            purchaser  = st.selectbox("Purchaser", purchaser_list, key="purchaser")
             if purchaser == "Other":
                 purchaser = st.text_input("Enter Purchaser Name", key="purchaser_other")
 
-            item = st.text_input("Item/Description", key="item")
-            property_location = st.selectbox(
-                "Property",
-                ["Florida", "Maine"],
-                key="expense_property"
-            )
-
-            category = st.selectbox("Category", category_list, key="category")
+            item              = st.text_input("Item/Description", key="item")
+            property_location = st.selectbox("Property", ["Florida", "Maine"], key="expense_property")
+            category          = st.selectbox("Category", category_list, key="category")
             if category == "Other":
                 category = st.text_input("Enter Category", key="category_other")
 
-            comments = st.text_area("Comments", key="comments")
+            amount = st.number_input("Amount", min_value=0.0, step=0.01, key="expense_amount")
+            comments      = st.text_area("Comments", key="comments")
             uploaded_file = st.file_uploader(
-                "Upload Receipt File",
-                type=["pdf", "png", "jpg", "jpeg"],
-                key="receipt_uploader"
+                "Upload Receipt File", type=["pdf", "png", "jpg", "jpeg"], key="receipt_uploader"
             )
 
             submitted = st.form_submit_button("Submit Expense Entry")
@@ -131,10 +122,9 @@ def show():
                 errors.append("❗ Date cannot be in the future.")
             if amount <= 0:
                 errors.append("❗ Amount must be greater than zero.")
-
             if errors:
-                for err in errors:
-                    st.error(err)
+                for e in errors:
+                    st.error(e)
             else:
                 receipt_link = ""
                 if uploaded_file:
@@ -145,43 +135,38 @@ def show():
                         with st.spinner("Uploading receipt to Drive..."):
                             folder_id = get_drive_folder_id(entry_date)
                             if folder_id:
-                                file_id = upload_file_to_drive(
-                                    tmp_path, uploaded_file.name, folder_id
-                                )
-                                receipt_link = (
-                                    f"https://drive.google.com/file/d/{file_id}/view"
-                                )
+                                file_id = upload_file_to_drive(tmp_path, uploaded_file.name, folder_id)
+                                receipt_link = f"https://drive.google.com/file/d/{file_id}/view"
                             else:
-                                st.warning(
-                                    f"No folder configured for "
-                                    f"{entry_date.strftime('%B %Y')} — "
-                                    "receipt not uploaded."
-                                )
+                                st.warning(f"No folder for {entry_date.strftime('%B %Y')} — receipt not uploaded.")
                     finally:
                         os.remove(tmp_path)
 
-                month = entry_date.strftime("%B")
-                row = [
-                    month,
-                    entry_date.strftime("%Y-%m-%d"),
-                    purchaser,
-                    item,
-                    property_location,
-                    category,
-                    amount,
-                    comments,
-                    receipt_link,
-                ]
+                # Dynamic append for expenses
+                ws = get_worksheet("2025 OPP Expenses")
+                headers = ws.row_values(1)
+                row_dict = {
+                    "Month": entry_date.strftime("%B"),
+                    "Date": entry_date.strftime("%Y-%m-%d"),
+                    "Purchaser": purchaser,
+                    "Item/Description": item,
+                    "Property": property_location,
+                    "Category": category,
+                    "Amount": amount,
+                    "Comments": comments,
+                    "Receipt Link": receipt_link,
+                }
+                row = [row_dict.get(col, "") for col in headers]
                 with st.spinner("Submitting expense entry..."):
-                    append_row("2025 OPP Expenses", row)
+                    ws.append_row(row, value_input_option="USER_ENTERED")
                 st.success("✅ Expense entry submitted!")
 
-    # ─── Custom footer ─────────────────────────────────────────────────────
+    # ─── Footer ─────────────────────────────────────────────────────────
     st.markdown("---")
-    last_updated = datetime.now().strftime("%B %d, %Y %I:%M %p")
-    footer = f"""
-    <div style="text-align:center; font-size:0.85em; color:gray;">
-      Oceanview Property Partners • v1.3.0 • Last updated: {last_updated}
-    </div>
-    """
-    st.markdown(footer, unsafe_allow_html=True)
+    last = datetime.now().strftime("%B %d, %Y %I:%M %p")
+    st.markdown(
+        f'<div style="text-align:center; color:gray; font-size:0.85em;">'
+        f'Oceanview Property Partners • v1.3.0 • Last updated: {last}'
+        f'</div>',
+        unsafe_allow_html=True
+    )
