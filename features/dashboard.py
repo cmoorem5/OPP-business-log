@@ -97,12 +97,16 @@ def show():
         prop = row['Property']
         inc = row['Income']
         exp = row['Expense']
+        # Label each chart by property
+        st.subheader(prop)
         pie = go.Figure(
             go.Pie(
                 labels=["Income", "Expense"],
                 values=[inc, exp],
-                hole=0.4,
-                title=f"{prop}: ${inc:,.2f} Income vs ${exp:,.2f} Expense"
+                hole=0.4
             )
+        )
+        pie.update_layout(
+            title_text=f"${inc:,.2f} Income vs ${exp:,.2f} Expense"
         )
         st.plotly_chart(pie, use_container_width=True)
