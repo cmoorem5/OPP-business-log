@@ -10,14 +10,14 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
-# Your spreadsheet ID (from the URL between /d/ and /edit)
+# Spreadsheet ID from your URL: https://…/d/<ID>/edit
 SPREADSHEET_ID = "1W0sYd7MTTh3Tn8dqUVsG_y0kPBeoWswwgFpdoXmvEy0"
 
 @st.cache_resource(show_spinner=False)
 def get_gspread_client() -> gspread.Client:
     """
-    Returns an authorized gspread client, using the service-account JSON
-    stored in Streamlit secrets under "gdrive_credentials".
+    Returns a cached gspread client authorized with the service account
+    credentials stored in st.secrets["gdrive_credentials"].
     """
     creds_dict = json.loads(st.secrets["gdrive_credentials"])
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
@@ -26,8 +26,8 @@ def get_gspread_client() -> gspread.Client:
 @st.cache_data(ttl=300, show_spinner=False)
 def load_sheet_as_df(tab_name: str) -> pd.DataFrame:
     """
-    Loads the given worksheet (tab) from the fixed spreadsheet into a DataFrame.
-    Caches for 5 minutes.
+    Loads the worksheet tab called `tab_name` from the fixed SPREADSHEET_ID
+    into a pandas DataFrame. Results are cached for 5 minutes.
     """
     client = get_gspread_client()
     sheet = client.open_by_key(SPREADSHEET_ID)
@@ -38,7 +38,7 @@ def load_sheet_as_df(tab_name: str) -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def get_worksheet(tab_name: str) -> gspread.Worksheet:
     """
-    Retrieves the raw gspread Worksheet object for the given tab.
+    Retrieves the raw gspread Worksheet object for the given tab name.
     """
     client = get_gspread_client()
     sheet = client.open_by_key(SPREADSHEET_ID)
@@ -46,9 +46,8 @@ def get_worksheet(tab_name: str) -> gspread.Worksheet:
 
 def append_row(tab_name: str, row_data: list) -> None:
     """
-    Appends a single row to the specified worksheet tab.
+    Appends a single row (row_data) to the specified worksheet tab.
     """
     ws = get_worksheet(tab_name)
     ws.append_row(row_data, value_input_option="USER_ENTERED")
 
-    worksheet.append_row(row_data, value_input_option="USER_ENTERED")
