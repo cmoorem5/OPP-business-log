@@ -1,33 +1,36 @@
+# utils/google_sheets.py
+
 import json
-import streamlit as st
 import pandas as pd
+import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
+from google.auth.transport.requests import Request
 
-# Scopes for Google Sheets and Drive
+# Scopes for Sheets & Drive
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
 ]
 
-# Spreadsheet ID from your URL: https://…/d/<ID>/edit
+# Your spreadsheet ID (from the URL between /d/ and /edit)
 SPREADSHEET_ID = "1W0sYd7MTTh3Tn8dqUVsG_y0kPBeoWswwgFpdoXmvEy0"
 
-@st.cache_resource(show_spinner=False)
 def get_gspread_client() -> gspread.Client:
     """
-    Returns a cached gspread client authorized with the service account
-    credentials stored in st.secrets["gdrive_credentials"].
+    Create a new gspread client on each call, refreshing credentials so
+    you never get a stale‑token error.
     """
     creds_dict = json.loads(st.secrets["gdrive_credentials"])
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+    creds.refresh(Request())
     return gspread.authorize(creds)
 
 @st.cache_data(ttl=300, show_spinner=False)
 def load_sheet_as_df(tab_name: str) -> pd.DataFrame:
     """
-    Loads the worksheet tab called `tab_name` from the fixed SPREADSHEET_ID
-    into a pandas DataFrame. Results are cached for 5 minutes.
+    Load the worksheet `tab_name` from the fixed SPREADSHEET_ID into a DataFrame.
+    Cached for 5 minutes.
     """
     client = get_gspread_client()
     sheet = client.open_by_key(SPREADSHEET_ID)
@@ -35,10 +38,9 @@ def load_sheet_as_df(tab_name: str) -> pd.DataFrame:
     records = worksheet.get_all_records()
     return pd.DataFrame(records)
 
-@st.cache_data(show_spinner=False)
 def get_worksheet(tab_name: str) -> gspread.Worksheet:
     """
-    Retrieves the raw gspread Worksheet object for the given tab name.
+    Retrieve the raw gspread Worksheet object for `tab_name`.
     """
     client = get_gspread_client()
     sheet = client.open_by_key(SPREADSHEET_ID)
@@ -46,8 +48,7 @@ def get_worksheet(tab_name: str) -> gspread.Worksheet:
 
 def append_row(tab_name: str, row_data: list) -> None:
     """
-    Appends a single row (row_data) to the specified worksheet tab.
+    Append a single row to the given worksheet tab.
     """
     ws = get_worksheet(tab_name)
     ws.append_row(row_data, value_input_option="USER_ENTERED")
-
