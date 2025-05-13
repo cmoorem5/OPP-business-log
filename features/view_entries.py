@@ -22,12 +22,17 @@ def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
 def show():
     st.title("📂 View Logged Entries")
 
-    # 🔄 Refresh clears the cache for load_sheet_as_df and reloads below
+    # 🔄 Refresh button: clear cache and try to rerun,
+    # otherwise prompt the user to manually reload.
     if st.button("🔄 Refresh Data"):
         load_sheet_as_df.clear()
-        st.experimental_rerun()
+        try:
+            st.experimental_rerun()
+        except AttributeError:
+            st.warning("Cache cleared. Please reload the page (F5) to see updated data.")
+            return
 
-    # Load & clean sheets
+    # Load & clean both sheets
     income_df  = _clean_df(load_sheet_as_df("2025 OPP Income"))
     expense_df = _clean_df(load_sheet_as_df("2025 OPP Expenses"))
 
@@ -36,7 +41,7 @@ def show():
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-    # Choose view
+    # View selector
     choice = st.radio("View", ["Income", "Expense"], key="view_option")
     if choice == "Income":
         st.subheader("💰 Income Entries")
