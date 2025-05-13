@@ -1,10 +1,15 @@
+# features/view_entries.py
+
 import streamlit as st
 import pandas as pd
 from datetime import date
 from utils.google_sheets import load_sheet_as_df
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
-    # Drop blank headers & dedupe names
+    """
+    1) Drop blank/whitespace column names.
+    2) Make duplicate column names unique.
+    """
     df = df.loc[:, df.columns.str.strip() != ""]
     counts, new_cols = {}, []
     for col in df.columns:
@@ -19,19 +24,19 @@ def show():
 
     # — Refresh button —
     if st.button("🔄 Refresh Data"):
-        load_sheet_as_df.clear()
-        st.experimental_rerun()
+        st.cache_data.clear()           # clear all @st.cache_data caches
+        st.experimental_rerun()         # immediately rerun to pick up fresh data
 
     # Load & clean
     income_df  = _clean_df(load_sheet_as_df("2025 OPP Income"))
     expense_df = _clean_df(load_sheet_as_df("2025 OPP Expenses"))
 
-    # Parse dates
+    # Parse any Date columns
     for df in (income_df, expense_df):
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-    # Choose view
+    # View selector
     choice = st.radio("View", ["Income", "Expense"], key="view_option")
     if choice == "Income":
         st.subheader("💰 Income Entries")
@@ -45,18 +50,22 @@ def show():
                 if isinstance(url, str) and url else ""
             )
 
-    # — Filters —
+    # --- Filters ---
     props = st.multiselect(
         "Property",
         df["Property"].dropna().unique().tolist(),
         default=df["Property"].dropna().unique().tolist()
     )
 
-    # Date range defaults to this month
+    # Date range defaults to current month
     if "Date" in df.columns:
         today = date.today()
-        first = today.replace(day=1)
-        date_range = st.date_input("Date range", [first, today], key="date_range")
+        first_of_month = today.replace(day=1)
+        date_range = st.date_input(
+            "Date range",
+            [first_of_month, today],
+            key="date_range"
+        )
     else:
         date_range = None
 
@@ -76,7 +85,7 @@ def show():
         ) if is_expense and "Category" in df.columns else None
     )
 
-    # — Apply filters —
+    # --- Apply filters ---
     mask = df["Property"].isin(props)
     if date_range:
         start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
@@ -88,7 +97,7 @@ def show():
 
     filtered = df.loc[mask]
 
-    # — Display —
+    # --- Display ---
     if is_expense and "Receipt Link" in filtered.columns:
         st.markdown(filtered.to_html(escape=False, index=False), unsafe_allow_html=True)
     else:
