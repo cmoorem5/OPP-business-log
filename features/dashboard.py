@@ -42,18 +42,21 @@ def show():
     )
     df["Profit"] = df["Income"] - df["Expense"]
 
-    # Ensure month order
+    # Define full month order
     MONTHS = [
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     ]
-    df["Month"] = pd.Categorical(df["Month"], categories=MONTHS, ordered=True)
-    df = df.sort_values("Month")
 
-    # Time-series bar/line plot
+    # Create a full months DataFrame for reindexing
+    month_df = pd.DataFrame({"Month": MONTHS})
+
+    # Time-series bar/line plot with all months
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     for prop in df["Property"].unique():
-        prop_df = df[df["Property"] == prop]
+        prop_data = df[df["Property"] == prop][["Month", "Income", "Expense", "Profit"]]
+        prop_df = month_df.merge(prop_data, on="Month", how="left").fillna(0)
+
         fig.add_trace(
             go.Bar(
                 x=prop_df["Month"],
@@ -79,6 +82,13 @@ def show():
             secondary_y=True,
         )
 
+    # Ensure x-axis shows all months in correct order
+    fig.update_xaxes(
+        type='category',
+        categoryorder='array',
+        categoryarray=MONTHS
+    )
+
     fig.update_layout(
         barmode="group",
         xaxis_title="Month",
@@ -97,7 +107,6 @@ def show():
         prop = row['Property']
         inc = row['Income']
         exp = row['Expense']
-        # Label each chart by property
         st.subheader(prop)
         pie = go.Figure(
             go.Pie(
