@@ -29,14 +29,28 @@ def get_gspread_client() -> gspread.Client:
 @st.cache_data(ttl=300, show_spinner=False)
 def load_sheet_as_df(tab_name: str) -> pd.DataFrame:
     """
-    Load the worksheet `tab_name` from the fixed SPREADSHEET_ID into a DataFrame.
+    Load the worksheet `tab_name` from SPREADSHEET_ID into a DataFrame,
+    by pulling all values and using the first non-empty row as header.
     Cached for 5 minutes.
     """
     client = get_gspread_client()
     sheet = client.open_by_key(SPREADSHEET_ID)
-    worksheet = sheet.worksheet(tab_name)
-    records = worksheet.get_all_records()
-    return pd.DataFrame(records)
+    ws = sheet.worksheet(tab_name)
+
+    all_values = ws.get_all_values()
+    if not all_values:
+        return pd.DataFrame()
+
+    # find first non-blank row to use as header
+    header_idx = next(
+        (i for i, row in enumerate(all_values) if any(cell.strip() for cell in row)),
+        0
+    )
+    header = all_values[header_idx]
+    data = all_values[header_idx + 1 :]
+
+    df = pd.DataFrame(data, columns=header)
+    return df
 
 def get_worksheet(tab_name: str) -> gspread.Worksheet:
     """
