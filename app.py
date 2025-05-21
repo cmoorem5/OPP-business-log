@@ -45,11 +45,17 @@ page = st.sidebar.radio(
 with st.sidebar.expander("🕒 Version History"):
     st.markdown(
         """
-        **v1.0.0** – Modular base app complete  
+        **v1.3.0** – Support for 2026 income tracking  
+        - Rental income now routed by year  
+        - Dashboard uses rental start date  
+        - Locked to 2025 data for now  
+        
+        **v1.2.0-dev** – Debugging tools added  
         **v1.1.0-dev** – Added Google Sheets + Drive integration  
-        **v1.2.0-dev** – Debugging tools added
+        **v1.0.0** – Modular base app complete  
         """
     )
+
 
 # Page routing
 if page == "Dashboard":
