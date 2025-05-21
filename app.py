@@ -36,7 +36,7 @@ st.sidebar.title("📘 OPP Finance Tracker")
 
 page = st.sidebar.radio(
     "Navigate",
-    ["Dashboard", "Rental Entry", "View Entries", "Receipts", "Data Export"]
+    ["Dashboard", "Rental Entry", "View Entries", "Receipts", "Data Export", "Expense Debug"]
 )
 
 with st.sidebar.expander("🕒 Version History"):
