@@ -36,8 +36,10 @@ def show():
     income_df = _clean_df(load_sheet_as_df(f"{year} OPP Income"))
     if "Income Amount" in income_df.columns:
         income_df.rename(columns={"Income Amount": "Amount"}, inplace=True)
+    income_df["Property"] = income_df["Property"].astype(str).str.strip().str.title()
 
     expense_df = _clean_df(load_sheet_as_df(f"{year} OPP Expenses"))
+    expense_df["Property"] = expense_df["Property"].astype(str).str.strip().str.title()
 
     income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
     income_df = income_df.dropna(subset=["Rental Start Date"])
