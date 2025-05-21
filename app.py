@@ -71,4 +71,5 @@ elif page == "Data Export":
 
 # Custom footer
 st.markdown("---")
-st.markdown(f"**© {datetime.now().year} Oceanview Property Partners** — Version 1.2.0-dev — Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+st.markdown(f"**© {datetime.now().year} Oceanview Property Partners** — Version 1.3.0 — Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+
