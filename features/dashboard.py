@@ -43,13 +43,11 @@ def show():
 
     expense_df = _clean_df(load_sheet_as_df(f"{year} OPP Expenses"))
 
-    # Enrich income data
     income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
     income_df = income_df.dropna(subset=["Rental Start Date"])
     income_df["Month"] = income_df["Rental Start Date"].dt.strftime("%B")
     income_df["Year"] = income_df["Rental Start Date"].dt.year
 
-    # Enrich expense data
     expense_df["Date"] = pd.to_datetime(expense_df["Date"], errors="coerce")
     expense_df = expense_df.dropna(subset=["Date"])
     expense_df["Month"] = expense_df["Date"].dt.strftime("%B")
@@ -65,11 +63,8 @@ def show():
         inc = income_df[income_df["Property"] == prop]
         exp = expense_df[expense_df["Property"] == prop]
 
-        # Safely calculate totals
         total_income = inc["Amount"].astype(str).str.replace(",", "").astype(float).sum() if "Amount" in inc.columns else 0
         total_expense = exp["Amount"].astype(str).str.replace(",", "").astype(float).sum() if "Amount" in exp.columns else 0
-
-
         profit = total_income - total_expense
 
         col1.metric("Total Income", f"${total_income:,.2f}")
@@ -102,16 +97,12 @@ def show():
                 continue
             pivot = df.pivot_table(index="Month", columns="Property", values="Amount", aggfunc="sum", fill_value=0)
             pivot = pivot.reindex(month_order).fillna(0)
-
-            # Sanitize any formatted strings like '1,325.00'
-            pivot = pivot.applymap(lambda x: float(str(x).replace(",", "")) if pd.notna(x) else 0)
+            pivot = pivot.applymap(lambda x: pd.to_numeric(str(x).replace(",", ""), errors="coerce")).fillna(0)
 
             st.markdown(f"**{label} Heatmap**")
             fig, ax = plt.subplots(figsize=(10, 4))
             sns.heatmap(pivot, annot=True, fmt=".0f", cmap=cmap, ax=ax)
             st.pyplot(fig)
-
-
 
     st.markdown("---")
     with st.expander("📂 View Logged Entries"):
