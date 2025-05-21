@@ -59,11 +59,14 @@ def show():
 
     for prop in properties:
         st.markdown(f"### 🏡 {prop}")
+
+        # DEBUGGING BLOCK
+        exp = expense_df[expense_df["Property"].str.strip().str.lower() == prop.strip().lower()]
+        inc = income_df[income_df["Property"].str.strip().str.lower() == prop.strip().lower()]
+        st.info(f"🔍 {prop} – Total Expenses Loaded: {len(expense_df)}, Filtered: {len(exp)}")
+        st.dataframe(exp[["Date", "Item", "Amount", "Property"]].sort_values("Date"))
+
         col1, col2 = st.columns(2)
-
-        inc = income_df[income_df["Property"] == prop]
-        exp = expense_df[expense_df["Property"] == prop]
-
         total_income = inc["Amount"].sum()
         total_expense = exp["Amount"].sum()
         profit = total_income - total_expense
@@ -115,18 +118,6 @@ def show():
             fig, ax = plt.subplots()
             ax.pie(pie_data, labels=pie_data.index, autopct="%1.1f%%", startangle=90)
             ax.axis("equal")
-            st.pyplot(fig)
-
-    with st.expander("🌡️ Heatmap - Monthly Totals by Property"):
-        for label, df, cmap in [("Income", income_df, "Greens"), ("Expenses", expense_df, "Reds")]:
-            if "Amount" not in df.columns:
-                continue
-            pivot = df.pivot_table(index="Month", columns="Property", values="Amount", aggfunc="sum", fill_value=0)
-            pivot = pivot.reindex(month_order).fillna(0)
-
-            st.markdown(f"**{label} Heatmap**")
-            fig, ax = plt.subplots(figsize=(10, 4))
-            sns.heatmap(pivot, annot=True, fmt=".0f", cmap=cmap, ax=ax)
             st.pyplot(fig)
 
     st.markdown("---")
