@@ -72,6 +72,9 @@ def show():
                 "Income": inc.groupby("Month")["Amount"].sum() if "Amount" in inc.columns else pd.Series(dtype=float),
                 "Expenses": exp.groupby("Month")["Amount"].sum() if "Amount" in exp.columns else pd.Series(dtype=float)
             }).reindex(month_order).fillna(0)
+
+            monthly["Income"] = pd.to_numeric(monthly["Income"], errors="coerce").fillna(0)
+            monthly["Expenses"] = pd.to_numeric(monthly["Expenses"], errors="coerce").fillna(0)
             monthly["Profit"] = monthly["Income"] - monthly["Expenses"]
 
             fig, ax = plt.subplots(figsize=(8, 4))
