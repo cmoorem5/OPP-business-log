@@ -44,7 +44,7 @@ def show():
     expense_df.columns = expense_df.columns.str.strip().str.title()
     expense_df["Property"] = expense_df["Property"].astype(str).str.strip().str.title()
 
-    # Normalize amount fields
+    # Clean amount strings with commas
     income_df["Amount"] = pd.to_numeric(income_df["Amount"].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
     expense_df["Amount"] = pd.to_numeric(expense_df["Amount"].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
 
@@ -78,7 +78,12 @@ def show():
 
         with st.expander("📈 Monthly Breakdown + Category Filter"):
             available_categories = exp["Category"].dropna().unique().tolist()
-            selected_categories = st.multiselect("Filter by Category (optional)", available_categories, default=available_categories)
+            selected_categories = st.multiselect(
+                "Filter by Category (optional)",
+                available_categories,
+                default=available_categories,
+                key=f"{prop}_category_filter"
+            )
 
             filtered_exp = exp[exp["Category"].isin(selected_categories)]
             monthly = pd.DataFrame({
@@ -123,3 +128,4 @@ def show():
             st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
             st.dataframe(df, use_container_width=True)
+
