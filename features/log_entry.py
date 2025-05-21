@@ -17,39 +17,18 @@ def show():
     if entry_type == "Income":
         # ─── INCOME FORM ───────────────────────────────────────────────
         with st.form("income_form", clear_on_submit=True):
-            booking_date       = st.date_input(
-                "Booking Date (when reservation made)",
-                date.today(),
-                key="booking_date"
-            )
+            year = st.selectbox("Log Income To:", ["2025", "2026"], key="income_year")
+            sheet_name = f"{year} OPP Income"
+
+            booking_date       = st.date_input("Booking Date (when reservation made)", date.today(), key="booking_date")
             month              = booking_date.strftime("%B")
-            rental_dates       = st.date_input(
-                "Rental Date Range",
-                (date.today(), date.today()),
-                key="rental_dates"
-            )
+            rental_dates       = st.date_input("Rental Date Range", (date.today(), date.today()), key="rental_dates")
             rental_range       = f"{rental_dates[0]} – {rental_dates[1]}"
-            property_location  = st.selectbox(
-                "Property",
-                ["Florida", "Maine"],
-                key="income_property"
-            )
+            property_location  = st.selectbox("Property", ["Florida", "Maine"], key="income_property")
             source             = st.text_input("Income Source", key="income_source")
-            invoice_no         = st.text_input(
-                "Description/Invoice No.",
-                key="invoice_no"
-            )
-            amount             = st.number_input(
-                "Amount",
-                min_value=0.0,
-                step=0.01,
-                key="income_amount"
-            )
-            status             = st.selectbox(
-                "Complete",
-                ["Paid", "Cancelled", "PMT Due", "Downpayment Received"],
-                key="income_status"
-            )
+            invoice_no         = st.text_input("Description/Invoice No.", key="invoice_no")
+            amount             = st.number_input("Amount", min_value=0.0, step=0.01, key="income_amount")
+            status             = st.selectbox("Complete", ["Paid", "Cancelled", "PMT Due", "Downpayment Received"], key="income_status")
 
             st.markdown("#### 👤 Renter Contact Info (Optional)")
             renter_name    = st.text_input("Name", key="renter_name")
@@ -69,7 +48,7 @@ def show():
                 for e in errors:
                     st.error(e)
             else:
-                ws = get_worksheet("2025 OPP Income")
+                ws = get_worksheet(sheet_name)
                 headers = ws.row_values(1)
                 row_dict = {
                     "Month": month,
@@ -88,24 +67,20 @@ def show():
                     "Email": renter_email,
                 }
                 row = [row_dict.get(col, "") for col in headers]
-                with st.spinner("Submitting income entry..."):
+                with st.spinner(f"Submitting income entry to {sheet_name}..."):
                     ws.append_row(row, value_input_option="USER_ENTERED")
-                st.success("✅ Income entry submitted!")
+                st.success(f"✅ Income entry submitted to {sheet_name}!")
 
     else:
         # ─── EXPENSE FORM ───────────────────────────────────────────────
         with st.spinner("Loading dropdown data..."):
             purchasers_df = load_sheet_as_df("Purchasers")
-            purchaser_list = sorted(
-                purchasers_df["Purchaser"].dropna().unique().tolist()
-            )
+            purchaser_list = sorted(purchasers_df["Purchaser"].dropna().unique().tolist())
             purchaser_list.append("Other")
 
             expenses_df = load_sheet_as_df("2025 OPP Expenses")
             if "Category" in expenses_df.columns:
-                category_list = sorted(
-                    expenses_df["Category"].dropna().unique().tolist()
-                )
+                category_list = sorted(expenses_df["Category"].dropna().unique().tolist())
             else:
                 category_list = []
             category_list.append("Other")
@@ -124,9 +99,7 @@ def show():
 
             amount        = st.number_input("Amount", min_value=0.0, step=0.01, key="expense_amount")
             comments      = st.text_area("Comments", key="comments")
-            uploaded_file = st.file_uploader(
-                "Upload Receipt File", type=["pdf", "png", "jpg", "jpeg"], key="receipt_uploader"
-            )
+            uploaded_file = st.file_uploader("Upload Receipt File", type=["pdf", "png", "jpg", "jpeg"], key="receipt_uploader")
 
             submitted = st.form_submit_button("Submit Expense Entry")
 
