@@ -41,8 +41,9 @@ def show():
     expense_df = _clean_df(load_sheet_as_df(f"{year} OPP Expenses"))
     expense_df["Property"] = expense_df["Property"].astype(str).str.strip().str.title()
 
-    income_df["Amount"] = pd.to_numeric(income_df["Amount"], errors="coerce").fillna(0)
-    expense_df["Amount"] = pd.to_numeric(expense_df["Amount"], errors="coerce").fillna(0)
+    # Clean amount column (remove commas, convert to float)
+    income_df["Amount"] = pd.to_numeric(income_df["Amount"].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
+    expense_df["Amount"] = pd.to_numeric(expense_df["Amount"].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
 
     income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
     income_df = income_df.dropna(subset=["Rental Start Date"])
@@ -59,14 +60,11 @@ def show():
 
     for prop in properties:
         st.markdown(f"### 🏡 {prop}")
-
-        # DEBUGGING BLOCK
-        exp = expense_df[expense_df["Property"].str.strip().str.lower() == prop.strip().lower()]
-        inc = income_df[income_df["Property"].str.strip().str.lower() == prop.strip().lower()]
-        st.info(f"🔍 {prop} – Total Expenses Loaded: {len(expense_df)}, Filtered: {len(exp)}")
-        st.dataframe(exp[["Date", "Item", "Amount", "Property"]].sort_values("Date"))
-
         col1, col2 = st.columns(2)
+
+        inc = income_df[income_df["Property"].str.strip().str.lower() == prop.strip().lower()]
+        exp = expense_df[expense_df["Property"].str.strip().str.lower() == prop.strip().lower()]
+
         total_income = inc["Amount"].sum()
         total_expense = exp["Amount"].sum()
         profit = total_income - total_expense
@@ -100,15 +98,6 @@ def show():
 
             csv = monthly.reset_index().to_csv(index=False).encode("utf-8")
             st.download_button("📥 Download CSV", csv, f"{prop}_{year}_summary.csv", "text/csv")
-
-            st.markdown("#### 🔁 Recurring Keyword Totals")
-            recurring_keywords = ["mortgage", "heloc", "insurance", "utilities"]
-            match_df = exp[exp["Item"].str.lower().fillna("").str.contains("|".join(recurring_keywords))]
-            if not match_df.empty:
-                summary = match_df.groupby("Item")["Amount"].sum().sort_values(ascending=False)
-                st.dataframe(summary.reset_index().rename(columns={"Item": "Recurring Item", "Amount": "Total ($)"}))
-            else:
-                st.info("No recurring keyword matches found.")
 
         with st.expander("📍 Pie Charts"):
             pie_data = pd.Series({
