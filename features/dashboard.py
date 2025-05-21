@@ -67,7 +67,8 @@ def show():
 
         # Safely calculate totals
         total_income = inc["Amount"].astype(str).str.replace(",", "").astype(float).sum() if "Amount" in inc.columns else 0
-total_expense = exp["Amount"].astype(str).str.replace(",", "").astype(float).sum() if "Amount" in exp.columns else 0
+        total_expense = exp["Amount"].astype(str).str.replace(",", "").astype(float).sum() if "Amount" in exp.columns else 0
+
 
         profit = total_income - total_expense
 
