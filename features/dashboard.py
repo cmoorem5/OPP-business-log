@@ -33,15 +33,18 @@ def show():
     st.title("📊 Dashboard")
 
     year = st.radio("Select Year", ["2025", "2026"], horizontal=True)
+
     income_df = _clean_df(load_sheet_as_df(f"{year} OPP Income"))
+    income_df.columns = income_df.columns.str.strip().str.title()
     if "Income Amount" in income_df.columns:
         income_df.rename(columns={"Income Amount": "Amount"}, inplace=True)
     income_df["Property"] = income_df["Property"].astype(str).str.strip().str.title()
 
     expense_df = _clean_df(load_sheet_as_df(f"{year} OPP Expenses"))
+    expense_df.columns = expense_df.columns.str.strip().str.title()
     expense_df["Property"] = expense_df["Property"].astype(str).str.strip().str.title()
 
-    # Clean amount column (remove commas, convert to float)
+    # Normalize amount fields
     income_df["Amount"] = pd.to_numeric(income_df["Amount"].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
     expense_df["Amount"] = pd.to_numeric(expense_df["Amount"].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
 
