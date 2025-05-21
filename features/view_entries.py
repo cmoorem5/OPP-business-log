@@ -48,16 +48,32 @@ def inject_recurring_expenses(template_sheet="2025 Recurring Expenses", target_s
         ws = get_worksheet(target_sheet)
         headers = ws.row_values(1)
 
+        # Load existing data to prevent duplicates
+        existing_df = load_sheet_as_df(target_sheet)
+        existing_df["Date"] = pd.to_datetime(existing_df["Date"], errors="coerce")
+        existing_df["Item/Description"] = existing_df["Item/Description"].astype(str)
+
+        existing_pairs = set(
+            zip(existing_df["Date"].dt.strftime("%Y-%m-%d"), existing_df["Item/Description"])
+        )
+
         count = 0
+        skipped = 0
         for _, row in df.iterrows():
+            date_str = row["Date"].strftime("%Y-%m-%d")
+            description = str(row["Expense"]).strip()
+            if (date_str, description) in existing_pairs:
+                skipped += 1
+                continue
+
             base_comment = str(row.get("Comments", "")).strip()
             final_comment = f"{base_comment} (Recurring)" if base_comment else "Recurring"
 
             row_data = {
                 "Month": row["Month"],
-                "Date": row["Date"].strftime("%Y-%m-%d"),
+                "Date": date_str,
                 "Purchaser": row["Purchaser"],
-                "Item/Description": row["Expense"],
+                "Item/Description": description,
                 "Property": row["Property"],
                 "Category": row["Category"],
                 "Amount": row["Amount"],
@@ -66,6 +82,9 @@ def inject_recurring_expenses(template_sheet="2025 Recurring Expenses", target_s
             }
             ws.append_row([row_data.get(h, "") for h in headers], value_input_option="USER_ENTERED")
             count += 1
+
+        if skipped:
+            st.info(f"{skipped} duplicate row(s) skipped.")
         return count
     except Exception as e:
         st.error(f"Recurring expense injection failed: {e}")
@@ -172,4 +191,4 @@ def show():
             if inserted:
                 st.success(f"{inserted} recurring expense(s) injected into 2025 OPP Expenses.")
             else:
-                st.warning("No rows injected or template sheet is incomplete.")
+                st.warning("No new rows injected (duplicates may have been skipped).")
