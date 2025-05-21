@@ -34,7 +34,13 @@ def extract_first_valid_date(date_str):
 def inject_recurring_expenses(template_sheet="2025 Recurring Expenses", target_sheet="2025 OPP Expenses"):
     try:
         df = load_sheet_as_df(template_sheet)
-        df = df.dropna(subset=["Date", "Purchaser", "Item/Description", "Property", "Category", "Amount"])
+        required = ["Date", "Expense", "Purchaser", "Property", "Category", "Amount"]
+        for col in required:
+            if col not in df.columns:
+                st.error(f"Missing required column: '{col}' in {template_sheet}")
+                return 0
+
+        df = df.dropna(subset=required)
         df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
         df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce")
         df["Month"] = df["Date"].dt.strftime("%B")
@@ -48,7 +54,7 @@ def inject_recurring_expenses(template_sheet="2025 Recurring Expenses", target_s
                 "Month": row["Month"],
                 "Date": row["Date"].strftime("%Y-%m-%d"),
                 "Purchaser": row["Purchaser"],
-                "Item/Description": row["Item/Description"],
+                "Item/Description": row["Expense"],
                 "Property": row["Property"],
                 "Category": row["Category"],
                 "Amount": row["Amount"],
@@ -163,4 +169,4 @@ def show():
             if inserted:
                 st.success(f"{inserted} recurring expense(s) injected into 2025 OPP Expenses.")
             else:
-                st.warning("No rows injected.")
+                st.warning("No rows injected or template sheet is incomplete.")
