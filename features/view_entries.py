@@ -5,7 +5,6 @@ from utils.google_sheets import load_sheet_as_df
 import re
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Drop blank/whitespace column names and make duplicates unique."""
     df = df.loc[:, df.columns.str.strip() != ""]
     counts, new_cols = {}, []
     for col in df.columns:
@@ -16,19 +15,13 @@ def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def extract_first_valid_date(date_str):
-    """Extracts the first valid date from a string with fallback to current year."""
     if not isinstance(date_str, str):
         return None
-
     date_str = date_str.replace("–", "-").replace("--", "-").strip()
-
     patterns = [
-        r"\d{4}-\d{2}-\d{2}",     # 2025-08-01
-        r"\d{2}/\d{2}/\d{4}",     # 08/01/2025
-        r"\d{2}-\d{2}-\d{4}",     # 08-01-2025
-        r"\d{2}/\d{2}",           # 08/01 (assume current year)
+        r"\d{4}-\d{2}-\d{2}", r"\d{2}/\d{2}/\d{4}",
+        r"\d{2}-\d{2}-\d{4}", r"\d{2}/\d{2}"
     ]
-
     for pattern in patterns:
         match = re.search(pattern, date_str)
         if match:
@@ -49,15 +42,12 @@ def show():
             st.warning("Cache cleared. Please reload the page (F5) to see updated data.")
             return
 
-    # Load & clean both sheets
     income_df = _clean_df(load_sheet_as_df("2025 OPP Income"))
     expense_df = _clean_df(load_sheet_as_df("2025 OPP Expenses"))
 
     choice = st.radio("View", ["Income", "Expense"], key="view_option")
     if choice == "Income":
         st.subheader("💰 Income Entries")
-
-        # --- Rental Start Date Parsing ---
         income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
         skipped = income_df[income_df["Rental Start Date"].isna()]
         df = income_df.dropna(subset=["Rental Start Date"]).copy()
@@ -65,7 +55,6 @@ def show():
         df["Rental Month"] = df["Rental Start Date"].dt.strftime("%B")
         df["Rental Year"] = df["Rental Start Date"].dt.year
 
-        # --- Filters ---
         props = st.multiselect(
             "Property",
             df["Property"].dropna().unique().tolist(),
@@ -83,7 +72,6 @@ def show():
         filtered = df.loc[mask]
         st.dataframe(filtered, use_container_width=True)
 
-        # Show skipped rows
         if not skipped.empty:
             st.warning(f"{len(skipped)} row(s) skipped due to unreadable rental dates.")
             with st.expander("🔍 View Skipped Rows"):
@@ -91,7 +79,7 @@ def show():
 
     else:
         st.subheader("💸 Expense Entries")
-        df, is_expense = expense_df.copy(), True
+        df = expense_df.copy()
 
         if "Receipt Link" in df.columns:
             df["Receipt Link"] = df["Receipt Link"].apply(
@@ -105,17 +93,15 @@ def show():
             default=df["Property"].dropna().unique().tolist()
         )
 
-        statuses = st.multiselect(
-            "Status",
-            df["Complete"].dropna().unique().tolist() if "Complete" in df.columns else [],
-            default=df["Complete"].dropna().unique().tolist() if "Complete" in df.columns else []
-        )
+        statuses = []
+        if "Complete" in df.columns:
+            statuses = df["Complete"].dropna().unique().tolist()
+        selected_statuses = st.multiselect("Status", statuses, default=statuses) if statuses else None
 
-        categories = st.multiselect(
-            "Category",
-            df["Category"].dropna().unique().tolist() if "Category" in df.columns else [],
-            default=df["Category"].dropna().unique().tolist() if "Category" in df.columns else []
-        )
+        categories = []
+        if "Category" in df.columns:
+            categories = df["Category"].dropna().unique().tolist()
+        selected_categories = st.multiselect("Category", categories, default=categories) if categories else None
 
         date_range = st.date_input(
             "Expense Date Range",
@@ -123,17 +109,15 @@ def show():
             key="date_range_expense"
         )
 
+        mask = df["Property"].isin(props)
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
             start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
-            mask = (
-                df["Property"].isin(props) &
-                df["Complete"].isin(statuses) &
-                df["Category"].isin(categories) &
-                df["Date"].between(start, end)
-            )
-        else:
-            mask = df["Property"].isin(props)
+            mask &= df["Date"].between(start, end)
+        if selected_statuses is not None and "Complete" in df.columns:
+            mask &= df["Complete"].isin(selected_statuses)
+        if selected_categories is not None and "Category" in df.columns:
+            mask &= df["Category"].isin(selected_categories)
 
         filtered = df.loc[mask]
 
