@@ -38,6 +38,9 @@ def show():
 
     year = st.radio("Select Year", ["2025", "2026"], horizontal=True)
     income_df = _clean_df(load_sheet_as_df(f"{year} OPP Income"))
+    if "Income Amount" in income_df.columns:
+        income_df.rename(columns={"Income Amount": "Amount"}, inplace=True)
+
     expense_df = _clean_df(load_sheet_as_df(f"{year} OPP Expenses"))
 
     # Enrich income data
@@ -123,4 +126,3 @@ def show():
                 st.success(f"{inserted} recurring expense(s) injected into {year} OPP Expenses.")
             else:
                 st.info("No new rows injected. Possible duplicates skipped.")
-
