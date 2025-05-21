@@ -40,13 +40,13 @@ def show():
     income_df = _clean_df(load_sheet_as_df(f"{year} OPP Income"))
     expense_df = _clean_df(load_sheet_as_df(f"{year} OPP Expenses"))
 
-    # Clean and enrich income data
+    # Enrich income data
     income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
     income_df = income_df.dropna(subset=["Rental Start Date"])
     income_df["Month"] = income_df["Rental Start Date"].dt.strftime("%B")
     income_df["Year"] = income_df["Rental Start Date"].dt.year
 
-    # Clean and enrich expense data
+    # Enrich expense data
     expense_df["Date"] = pd.to_datetime(expense_df["Date"], errors="coerce")
     expense_df = expense_df.dropna(subset=["Date"])
     expense_df["Month"] = expense_df["Date"].dt.strftime("%B")
@@ -55,7 +55,6 @@ def show():
     properties = sorted(set(income_df["Property"].dropna().unique()) | set(expense_df["Property"].dropna().unique()))
     month_order = list(pd.date_range("2025-01-01", "2025-12-31", freq="MS").strftime("%B").unique())
 
-    # Property dashboards
     for prop in properties:
         st.markdown(f"### 🏡 {prop}")
         col1, col2 = st.columns(2)
@@ -63,8 +62,9 @@ def show():
         inc = income_df[income_df["Property"] == prop]
         exp = expense_df[expense_df["Property"] == prop]
 
-        total_income = inc["Amount"].sum()
-        total_expense = exp["Amount"].sum()
+        # Safely calculate totals
+        total_income = inc["Amount"].astype(float).sum() if "Amount" in inc else 0
+        total_expense = exp["Amount"].astype(float).sum() if "Amount" in exp else 0
         profit = total_income - total_expense
 
         col1.metric("Total Income", f"${total_income:,.2f}")
@@ -73,8 +73,8 @@ def show():
 
         with st.expander("📈 Monthly Breakdown"):
             monthly = pd.DataFrame({
-                "Income": inc.groupby("Month")["Amount"].sum(),
-                "Expenses": exp.groupby("Month")["Amount"].sum()
+                "Income": inc.groupby("Month")["Amount"].sum() if "Amount" in inc else pd.Series(dtype=float),
+                "Expenses": exp.groupby("Month")["Amount"].sum() if "Amount" in exp else pd.Series(dtype=float)
             }).reindex(month_order).fillna(0)
 
             st.bar_chart(monthly)
@@ -82,15 +82,19 @@ def show():
             st.download_button("📥 Download CSV", csv, f"{prop}_{year}_summary.csv", "text/csv")
 
         with st.expander("📍 Pie Charts"):
-            pie_data = pd.Series({"Income": total_income, "Expenses": total_expense})
+            pie_data = pd.Series({
+                "Income": total_income,
+                "Expenses": total_expense
+            })
             fig, ax = plt.subplots()
             ax.pie(pie_data, labels=pie_data.index, autopct="%1.1f%%", startangle=90)
             ax.axis("equal")
             st.pyplot(fig)
 
-    # Heatmaps across properties
     with st.expander("🌡️ Heatmap - Monthly Totals by Property"):
         for label, df, cmap in [("Income", income_df, "Greens"), ("Expenses", expense_df, "Reds")]:
+            if "Amount" not in df.columns:
+                continue
             pivot = df.pivot_table(index="Month", columns="Property", values="Amount", aggfunc="sum", fill_value=0)
             pivot = pivot.reindex(month_order).fillna(0)
 
@@ -99,7 +103,6 @@ def show():
             sns.heatmap(pivot, annot=True, fmt=".0f", cmap=cmap, ax=ax)
             st.pyplot(fig)
 
-    # Logged entries
     st.markdown("---")
     with st.expander("📂 View Logged Entries"):
         view_choice = st.radio("Select Type", ["Income", "Expense"], horizontal=True)
@@ -112,11 +115,10 @@ def show():
         else:
             st.dataframe(df, use_container_width=True)
 
-    # Recurring expense injection
     st.markdown("---")
     with st.expander("🔁 Inject Recurring Expenses"):
         if st.button("📥 Inject Recurring Rows"):
-            inserted = inject_recurring_expenses()
+            inserted = inject_recurring_expenses(year=year)
             if inserted:
                 st.success(f"{inserted} recurring expense(s) injected into {year} OPP Expenses.")
             else:
