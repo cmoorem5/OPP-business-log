@@ -110,6 +110,15 @@ def show():
             st.dataframe(filtered, use_container_width=True)
 
         st.markdown("---")
+
+        # Always show column debug info
+        try:
+            df_debug = load_sheet_as_df("2025 Recurring Expenses")
+            st.info("🔍 Columns in '2025 Recurring Expenses':")
+            st.write(list(df_debug.columns))
+        except Exception as e:
+            st.error(f"Failed to load recurring sheet: {e}")
+
         if st.button("📥 Inject Recurring Expenses"):
             from features.dashboard import inject_recurring_expenses
             inserted = inject_recurring_expenses()
@@ -117,11 +126,3 @@ def show():
                 st.success(f"{inserted} recurring expense(s) injected into 2025 OPP Expenses.")
             else:
                 st.warning("No new rows injected (duplicates may have been skipped).")
-
-            # Debug: show columns from the recurring sheet
-            try:
-                df_debug = load_sheet_as_df("2025 Recurring Expenses")
-                st.info("🔍 Columns in '2025 Recurring Expenses':")
-                st.write(list(df_debug.columns))
-            except Exception as e:
-                st.error(f"Failed to load recurring sheet: {e}")
