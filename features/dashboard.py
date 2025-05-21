@@ -4,8 +4,6 @@ import re
 import matplotlib.pyplot as plt
 import seaborn as sns
 from utils.google_sheets import load_sheet_as_df
-from features.recurring import inject_recurring_expenses
-
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[:, df.columns.str.strip() != ""]
@@ -16,7 +14,6 @@ def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
         counts[col] += 1
     df.columns = new_cols
     return df
-
 
 def extract_first_valid_date(date_str):
     if not isinstance(date_str, str):
@@ -31,7 +28,6 @@ def extract_first_valid_date(date_str):
                 date += f"/{pd.Timestamp.now().year}"
             return pd.to_datetime(date, errors="coerce")
     return None
-
 
 def show():
     st.title("📊 Dashboard")
@@ -76,8 +72,19 @@ def show():
                 "Income": inc.groupby("Month")["Amount"].sum() if "Amount" in inc.columns else pd.Series(dtype=float),
                 "Expenses": exp.groupby("Month")["Amount"].sum() if "Amount" in exp.columns else pd.Series(dtype=float)
             }).reindex(month_order).fillna(0)
+            monthly["Profit"] = monthly["Income"] - monthly["Expenses"]
 
-            st.bar_chart(monthly)
+            fig, ax = plt.subplots(figsize=(8, 4))
+            ax.bar(monthly.index, monthly["Income"], label="Income", color="tab:green")
+            ax.bar(monthly.index, monthly["Expenses"], label="Expenses", color="tab:red", alpha=0.7)
+            ax.plot(monthly.index, monthly["Profit"], color="black", marker="o", linewidth=2, label="Profit")
+
+            ax.set_ylabel("Amount ($)")
+            ax.set_title(f"{prop} – Monthly Financials")
+            ax.legend()
+            ax.tick_params(axis='x', rotation=45)
+            st.pyplot(fig)
+
             csv = monthly.reset_index().to_csv(index=False).encode("utf-8")
             st.download_button("📥 Download CSV", csv, f"{prop}_{year}_summary.csv", "text/csv")
 
@@ -115,12 +122,3 @@ def show():
             st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
             st.dataframe(df, use_container_width=True)
-
-    st.markdown("---")
-    with st.expander("🔁 Inject Recurring Expenses"):
-        if st.button("📥 Inject Recurring Rows"):
-            inserted = inject_recurring_expenses(year=year)
-            if inserted:
-                st.success(f"{inserted} recurring expense(s) injected into {year} OPP Expenses.")
-            else:
-                st.info("No new rows injected. Possible duplicates skipped.")
