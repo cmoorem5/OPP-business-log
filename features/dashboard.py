@@ -41,6 +41,10 @@ def show():
     expense_df = _clean_df(load_sheet_as_df(f"{year} OPP Expenses"))
     expense_df["Property"] = expense_df["Property"].astype(str).str.strip().str.title()
 
+    # FIX: Normalize all Amount columns globally
+    income_df["Amount"] = pd.to_numeric(income_df["Amount"], errors="coerce").fillna(0)
+    expense_df["Amount"] = pd.to_numeric(expense_df["Amount"], errors="coerce").fillna(0)
+
     income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
     income_df = income_df.dropna(subset=["Rental Start Date"])
     income_df["Month"] = income_df["Rental Start Date"].dt.strftime("%B")
@@ -61,8 +65,8 @@ def show():
         inc = income_df[income_df["Property"] == prop]
         exp = expense_df[expense_df["Property"] == prop]
 
-        total_income = inc["Amount"].astype(str).str.replace(",", "").astype(float).sum() if "Amount" in inc.columns else 0
-        total_expense = exp["Amount"].astype(str).str.replace(",", "").astype(float).sum() if "Amount" in exp.columns else 0
+        total_income = inc["Amount"].sum()
+        total_expense = exp["Amount"].sum()
         profit = total_income - total_expense
 
         col1.metric("Total Income", f"${total_income:,.2f}")
@@ -71,12 +75,10 @@ def show():
 
         with st.expander("📈 Monthly Breakdown"):
             monthly = pd.DataFrame({
-                "Income": inc.groupby("Month")["Amount"].sum() if "Amount" in inc.columns else pd.Series(dtype=float),
-                "Expenses": exp.groupby("Month")["Amount"].sum() if "Amount" in exp.columns else pd.Series(dtype=float)
+                "Income": inc.groupby("Month")["Amount"].sum(),
+                "Expenses": exp.groupby("Month")["Amount"].sum()
             }).reindex(month_order).fillna(0)
 
-            monthly["Income"] = pd.to_numeric(monthly["Income"], errors="coerce").fillna(0)
-            monthly["Expenses"] = pd.to_numeric(monthly["Expenses"], errors="coerce").fillna(0)
             monthly["Profit"] = monthly["Income"] - monthly["Expenses"]
 
             fig, ax = plt.subplots(figsize=(8, 4))
@@ -109,7 +111,6 @@ def show():
                 continue
             pivot = df.pivot_table(index="Month", columns="Property", values="Amount", aggfunc="sum", fill_value=0)
             pivot = pivot.reindex(month_order).fillna(0)
-            pivot = pivot.applymap(lambda x: pd.to_numeric(str(x).replace(",", ""), errors="coerce")).fillna(0)
 
             st.markdown(f"**{label} Heatmap**")
             fig, ax = plt.subplots(figsize=(10, 4))
