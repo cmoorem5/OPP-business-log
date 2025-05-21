@@ -1,6 +1,6 @@
 import streamlit as st
 from PIL import Image
-from features import dashboard, log_entry, view_entries, receipts, export
+from features import dashboard, log_entry, view_entries, receipts, export, recurring_summary
 from datetime import datetime
 
 # Page configuration
@@ -39,7 +39,7 @@ st.sidebar.title("📘 OPP Finance Tracker")
 
 page = st.sidebar.radio(
     "Navigate",
-    ["Dashboard", "Rental Entry", "View Entries", "Receipts", "Data Export"]
+    ["Dashboard", "Rental Entry", "View Entries", "Receipts", "Data Export", "Recurring Summary"]
 )
 
 with st.sidebar.expander("🕒 Version History"):
@@ -68,6 +68,8 @@ elif page == "Receipts":
     receipts.show()
 elif page == "Data Export":
     export.show()
+elif page == "Recurring Summary":
+    recurring_summary.show()
 
 # Custom footer
 st.markdown("---")
