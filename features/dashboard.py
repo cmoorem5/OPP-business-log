@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
-from utils.google_sheets import load_sheet_as_df
-from features.recurring import inject_recurring_expenses
 import re
 import matplotlib.pyplot as plt
 import seaborn as sns
+from utils.google_sheets import load_sheet_as_df
+from features.recurring import inject_recurring_expenses
 
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -29,7 +29,7 @@ def extract_first_valid_date(date_str):
             date = match.group(0)
             if len(date) == 5:
                 date += f"/{pd.Timestamp.now().year}"
-            return pd.to_datetime(date, errors='coerce')
+            return pd.to_datetime(date, errors="coerce")
     return None
 
 
@@ -40,18 +40,22 @@ def show():
     income_df = _clean_df(load_sheet_as_df(f"{year} OPP Income"))
     expense_df = _clean_df(load_sheet_as_df(f"{year} OPP Expenses"))
 
+    # Clean and enrich income data
     income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
     income_df = income_df.dropna(subset=["Rental Start Date"])
     income_df["Month"] = income_df["Rental Start Date"].dt.strftime("%B")
     income_df["Year"] = income_df["Rental Start Date"].dt.year
 
+    # Clean and enrich expense data
     expense_df["Date"] = pd.to_datetime(expense_df["Date"], errors="coerce")
     expense_df = expense_df.dropna(subset=["Date"])
     expense_df["Month"] = expense_df["Date"].dt.strftime("%B")
     expense_df["Year"] = expense_df["Date"].dt.year
 
     properties = sorted(set(income_df["Property"].dropna().unique()) | set(expense_df["Property"].dropna().unique()))
+    month_order = list(pd.date_range("2025-01-01", "2025-12-31", freq="MS").strftime("%B").unique())
 
+    # Property dashboards
     for prop in properties:
         st.markdown(f"### 🏡 {prop}")
         col1, col2 = st.columns(2)
@@ -59,8 +63,8 @@ def show():
         inc = income_df[income_df["Property"] == prop]
         exp = expense_df[expense_df["Property"] == prop]
 
-        total_income = inc["Amount"].sum() if "Amount" in inc else 0
-        total_expense = exp["Amount"].sum() if "Amount" in exp else 0
+        total_income = inc["Amount"].sum()
+        total_expense = exp["Amount"].sum()
         profit = total_income - total_expense
 
         col1.metric("Total Income", f"${total_income:,.2f}")
@@ -71,11 +75,10 @@ def show():
             monthly = pd.DataFrame({
                 "Income": inc.groupby("Month")["Amount"].sum(),
                 "Expenses": exp.groupby("Month")["Amount"].sum()
-            }).fillna(0)
-            monthly = monthly.loc[monthly.index.intersection(pd.date_range(f"{year}-01-01", f"{year}-12-31").strftime("%B").unique())]
+            }).reindex(month_order).fillna(0)
 
             st.bar_chart(monthly)
-            csv = monthly.reset_index().to_csv(index=False).encode('utf-8')
+            csv = monthly.reset_index().to_csv(index=False).encode("utf-8")
             st.download_button("📥 Download CSV", csv, f"{prop}_{year}_summary.csv", "text/csv")
 
         with st.expander("📍 Pie Charts"):
@@ -85,35 +88,31 @@ def show():
             ax.axis("equal")
             st.pyplot(fig)
 
+    # Heatmaps across properties
     with st.expander("🌡️ Heatmap - Monthly Totals by Property"):
-        inc_pivot = income_df.pivot_table(index="Month", columns="Property", values="Amount", aggfunc="sum", fill_value=0)
-        exp_pivot = expense_df.pivot_table(index="Month", columns="Property", values="Amount", aggfunc="sum", fill_value=0)
+        for label, df, cmap in [("Income", income_df, "Greens"), ("Expenses", expense_df, "Reds")]:
+            pivot = df.pivot_table(index="Month", columns="Property", values="Amount", aggfunc="sum", fill_value=0)
+            pivot = pivot.reindex(month_order).fillna(0)
 
-        st.markdown("**Income Heatmap**")
-        fig1, ax1 = plt.subplots(figsize=(10, 4))
-        sns.heatmap(inc_pivot, annot=True, fmt=".0f", cmap="Greens", ax=ax1)
-        st.pyplot(fig1)
+            st.markdown(f"**{label} Heatmap**")
+            fig, ax = plt.subplots(figsize=(10, 4))
+            sns.heatmap(pivot, annot=True, fmt=".0f", cmap=cmap, ax=ax)
+            st.pyplot(fig)
 
-        st.markdown("**Expense Heatmap**")
-        fig2, ax2 = plt.subplots(figsize=(10, 4))
-        sns.heatmap(exp_pivot, annot=True, fmt=".0f", cmap="Reds", ax=ax2)
-        st.pyplot(fig2)
-
+    # Logged entries
     st.markdown("---")
     with st.expander("📂 View Logged Entries"):
         view_choice = st.radio("Select Type", ["Income", "Expense"], horizontal=True)
-        if view_choice == "Income":
-            df = income_df.copy()
-            st.dataframe(df, use_container_width=True)
-        else:
-            df = expense_df.copy()
-            if "Receipt Link" in df.columns:
-                df["Receipt Link"] = df["Receipt Link"].apply(
-                    lambda url: f'<a href="{url}" target="_blank">View Receipt</a>' if isinstance(url, str) and url else "")
-                st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
-            else:
-                st.dataframe(df, use_container_width=True)
+        df = income_df if view_choice == "Income" else expense_df
 
+        if view_choice == "Expense" and "Receipt Link" in df.columns:
+            df["Receipt Link"] = df["Receipt Link"].apply(
+                lambda url: f'<a href="{url}" target="_blank">View Receipt</a>' if isinstance(url, str) and url else "")
+            st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
+        else:
+            st.dataframe(df, use_container_width=True)
+
+    # Recurring expense injection
     st.markdown("---")
     with st.expander("🔁 Inject Recurring Expenses"):
         if st.button("📥 Inject Recurring Rows"):
