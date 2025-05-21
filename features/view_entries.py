@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from utils.google_sheets import load_sheet_as_df
@@ -102,4 +103,3 @@ def show():
             st.markdown(filtered.to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
             st.dataframe(filtered, use_container_width=True)
-

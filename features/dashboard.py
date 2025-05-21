@@ -4,6 +4,8 @@ import re
 import matplotlib.pyplot as plt
 import seaborn as sns
 from utils.google_sheets import load_sheet_as_df
+from features.recurring import inject_recurring_expenses
+
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[:, df.columns.str.strip() != ""]
@@ -14,6 +16,7 @@ def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
         counts[col] += 1
     df.columns = new_cols
     return df
+
 
 def extract_first_valid_date(date_str):
     if not isinstance(date_str, str):
@@ -29,6 +32,7 @@ def extract_first_valid_date(date_str):
             return pd.to_datetime(date, errors="coerce")
     return None
 
+
 def show():
     st.title("📊 Dashboard")
 
@@ -42,10 +46,12 @@ def show():
     income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
     income_df = income_df.dropna(subset=["Rental Start Date"])
     income_df["Month"] = income_df["Rental Start Date"].dt.strftime("%B")
+    income_df["Year"] = income_df["Rental Start Date"].dt.year
 
     expense_df["Date"] = pd.to_datetime(expense_df["Date"], errors="coerce")
     expense_df = expense_df.dropna(subset=["Date"])
     expense_df["Month"] = expense_df["Date"].dt.strftime("%B")
+    expense_df["Year"] = expense_df["Date"].dt.year
 
     properties = sorted(set(income_df["Property"].dropna().unique()) | set(expense_df["Property"].dropna().unique()))
     month_order = list(pd.date_range("2025-01-01", "2025-12-31", freq="MS").strftime("%B").unique())
@@ -98,6 +104,7 @@ def show():
             sns.heatmap(pivot, annot=True, fmt=".0f", cmap=cmap, ax=ax)
             st.pyplot(fig)
 
+    st.markdown("---")
     with st.expander("📂 View Logged Entries"):
         view_choice = st.radio("Select Type", ["Income", "Expense"], horizontal=True)
         df = income_df if view_choice == "Income" else expense_df
@@ -108,3 +115,12 @@ def show():
             st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
             st.dataframe(df, use_container_width=True)
+
+    st.markdown("---")
+    with st.expander("🔁 Inject Recurring Expenses"):
+        if st.button("📥 Inject Recurring Rows"):
+            inserted = inject_recurring_expenses(year=year)
+            if inserted:
+                st.success(f"{inserted} recurring expense(s) injected into {year} OPP Expenses.")
+            else:
+                st.info("No new rows injected. Possible duplicates skipped.")
