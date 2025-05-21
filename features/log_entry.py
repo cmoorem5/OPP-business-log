@@ -9,34 +9,31 @@ from utils.google_drive import upload_file_to_drive
 from utils.config import get_drive_folder_id
 
 def show():
-    """Log a new income or expense entry with optional receipt upload."""
     st.title("📝 Log New Entry")
-
     entry_type = st.selectbox("Select Entry Type", ["Income", "Expense"])
 
     if entry_type == "Income":
-        # ─── INCOME FORM ───────────────────────────────────────────────
         with st.form("income_form", clear_on_submit=True):
             year = st.selectbox("Log Income To:", ["2025", "2026"], key="income_year")
             sheet_name = f"{year} OPP Income"
 
-            booking_date       = st.date_input("Booking Date (when reservation made)", date.today(), key="booking_date")
-            month              = booking_date.strftime("%B")
-            rental_dates       = st.date_input("Rental Date Range", (date.today(), date.today()), key="rental_dates")
-            rental_range       = f"{rental_dates[0]} – {rental_dates[1]}"
-            property_location  = st.selectbox("Property", ["Florida", "Maine"], key="income_property")
-            source             = st.text_input("Income Source", key="income_source")
-            invoice_no         = st.text_input("Description/Invoice No.", key="invoice_no")
-            amount             = st.number_input("Amount", min_value=0.0, step=0.01, key="income_amount")
-            status             = st.selectbox("Complete", ["Paid", "Cancelled", "PMT Due", "Downpayment Received"], key="income_status")
+            booking_date = st.date_input("Booking Date (when reservation made)", date.today(), key="booking_date")
+            month = booking_date.strftime("%B")
+            rental_dates = st.date_input("Rental Date Range", (date.today(), date.today()), key="rental_dates")
+            rental_range = f"{rental_dates[0]} – {rental_dates[1]}"
+            property_location = st.selectbox("Property", ["Florida", "Maine"], key="income_property")
+            source = st.text_input("Income Source", key="income_source")
+            invoice_no = st.text_input("Description/Invoice No.", key="invoice_no")
+            amount = st.number_input("Amount", min_value=0.0, step=0.01, key="income_amount")
+            status = st.selectbox("Complete", ["Paid", "Cancelled", "PMT Due", "Downpayment Received"], key="income_status")
 
             st.markdown("#### 👤 Renter Contact Info (Optional)")
-            renter_name    = st.text_input("Name", key="renter_name")
+            renter_name = st.text_input("Name", key="renter_name")
             renter_address = st.text_input("Address", key="renter_address")
-            renter_city    = st.text_input("City", key="renter_city")
-            renter_state   = st.text_input("State", key="renter_state")
-            renter_zip     = st.text_input("Zip", key="renter_zip")
-            renter_email   = st.text_input("Email", key="renter_email")
+            renter_city = st.text_input("City", key="renter_city")
+            renter_state = st.text_input("State", key="renter_state")
+            renter_zip = st.text_input("Zip", key="renter_zip")
+            renter_email = st.text_input("Email", key="renter_email")
 
             submitted = st.form_submit_button("Submit Income Entry")
 
@@ -56,7 +53,7 @@ def show():
                     "Rental Dates": rental_range,
                     "Income Source": source,
                     "Description/Invoice No.": invoice_no,
-                    "Income Amount": amount,
+                    "Amount": amount,
                     "Complete": status,
                     "Notes": "",
                     "Name": renter_name,
@@ -72,7 +69,6 @@ def show():
                 st.success(f"✅ Income entry submitted to {sheet_name}!")
 
     else:
-        # ─── EXPENSE FORM ───────────────────────────────────────────────
         with st.spinner("Loading dropdown data..."):
             purchasers_df = load_sheet_as_df("Purchasers")
             purchaser_list = sorted(purchasers_df["Purchaser"].dropna().unique().tolist())
@@ -87,18 +83,18 @@ def show():
 
         with st.form("expense_form", clear_on_submit=True):
             entry_date = st.date_input("Date", date.today(), key="expense_date")
-            purchaser  = st.selectbox("Purchaser", purchaser_list, key="purchaser")
+            purchaser = st.selectbox("Purchaser", purchaser_list, key="purchaser")
             if purchaser == "Other":
                 purchaser = st.text_input("Enter Purchaser Name", key="purchaser_other")
 
-            item              = st.text_input("Item/Description", key="item")
+            item = st.text_input("Item/Description", key="item")
             property_location = st.selectbox("Property", ["Florida", "Maine"], key="expense_property")
-            category          = st.selectbox("Category", category_list, key="category")
+            category = st.selectbox("Category", category_list, key="category")
             if category == "Other":
                 category = st.text_input("Enter Category", key="category_other")
 
-            amount        = st.number_input("Amount", min_value=0.0, step=0.01, key="expense_amount")
-            comments      = st.text_area("Comments", key="comments")
+            amount = st.number_input("Amount", min_value=0.0, step=0.01, key="expense_amount")
+            comments = st.text_area("Comments", key="comments")
             uploaded_file = st.file_uploader("Upload Receipt File", type=["pdf", "png", "jpg", "jpeg"], key="receipt_uploader")
 
             submitted = st.form_submit_button("Submit Expense Entry")
@@ -147,7 +143,6 @@ def show():
                     ws.append_row(row, value_input_option="USER_ENTERED")
                 st.success("✅ Expense entry submitted!")
 
-    # ─── Footer ─────────────────────────────────────────────────────────
     st.markdown("---")
     last = datetime.now().strftime("%B %d, %Y %I:%M %p")
     st.markdown(
