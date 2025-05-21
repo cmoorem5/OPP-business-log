@@ -1,121 +1,50 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from utils.google_sheets import load_sheet_as_df
-
+from datetime import datetime
 
 def show():
-    st.title("📊 Dashboard Overview")
+    st.title("📊 Dashboard (2025 Only)")
 
-    # Load and aggregate data
-    income_df = (
-        load_sheet_as_df("2025 OPP Income")
-        .rename(columns={"Income Amount": "Income"})
-    )
-    expense_df = (
-        load_sheet_as_df("2025 OPP Expenses")
-        .rename(columns={"Amount": "Expense"})
-    )
+    try:
+        df = load_sheet_as_df("2025 OPP Income")
+        if df.empty:
+            st.warning("No data found in 2025 OPP Income.")
+            return
 
-    # Coerce to numeric
-    income_df["Income"] = pd.to_numeric(income_df["Income"], errors="coerce").fillna(0)
-    expense_df["Expense"] = pd.to_numeric(expense_df["Expense"], errors="coerce").fillna(0)
+        # Ensure "Rental Dates" column exists
+        if "Rental Dates" not in df.columns:
+            st.error("Missing 'Rental Dates' column in sheet.")
+            return
 
-    # Monthly aggregation
-    income_monthly = (
-        income_df.groupby(["Property", "Month"], as_index=False)["Income"].sum()
-    )
-    expense_monthly = (
-        expense_df.groupby(["Property", "Month"], as_index=False)["Expense"].sum()
-    )
+        # Extract rental start date
+        df["Rental Start Date"] = df["Rental Dates"].str.split("–").str[0].str.strip()
+        df["Rental Start Date"] = pd.to_datetime(df["Rental Start Date"], errors="coerce")
 
-    # Merge and compute profit
-    df = (
-        pd.merge(
-            income_monthly,
-            expense_monthly,
-            on=["Property", "Month"],
-            how="outer"
-        )
-        .fillna(0)
-    )
-    df["Profit"] = df["Income"] - df["Expense"]
+        # Drop rows where date couldn't be parsed
+        df = df.dropna(subset=["Rental Start Date"])
 
-    # Define full month order
-    MONTHS = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ]
+        # Add month and year for grouping
+        df["Rental Month"] = df["Rental Start Date"].dt.strftime("%B")
+        df["Rental Year"] = df["Rental Start Date"].dt.year
 
-    # Create a full months DataFrame for reindexing
-    month_df = pd.DataFrame({"Month": MONTHS})
+        # Filter only 2025 (safe guard)
+        df = df[df["Rental Year"] == 2025]
 
-    # Time-series bar/line plot with all months
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
-    for prop in df["Property"].unique():
-        prop_data = df[df["Property"] == prop][["Month", "Income", "Expense", "Profit"]]
-        prop_df = month_df.merge(prop_data, on="Month", how="left").fillna(0)
+        # Clean and prepare for summary
+        df["Income Amount"] = pd.to_numeric(df["Income Amount"], errors="coerce")
+        summary = df.groupby("Rental Month")["Income Amount"].sum().reindex([
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ]).fillna(0)
 
-        fig.add_trace(
-            go.Bar(
-                x=prop_df["Month"],
-                y=prop_df["Income"],
-                name=f"{prop} Income"
-            ),
-            secondary_y=False,
-        )
-        fig.add_trace(
-            go.Bar(
-                x=prop_df["Month"],
-                y=prop_df["Expense"],
-                name=f"{prop} Expense"
-            ),
-            secondary_y=False,
-        )
-        fig.add_trace(
-            go.Line(
-                x=prop_df["Month"],
-                y=prop_df["Profit"],
-                name=f"{prop} Profit"
-            ),
-            secondary_y=True,
-        )
+        # Show summary table
+        st.subheader("Monthly Income Summary (based on Rental Start Date)")
+        st.bar_chart(summary)
 
-    # Ensure x-axis shows all months in correct order
-    fig.update_xaxes(
-        type='category',
-        categoryorder='array',
-        categoryarray=MONTHS
-    )
+        # Optional: View raw data
+        with st.expander("View Raw Data"):
+            st.dataframe(df)
 
-    fig.update_layout(
-        barmode="group",
-        xaxis_title="Month",
-        yaxis_title="Income / Expense ($)",
-        legend_title="Metrics",
-        title_text="Monthly Income, Expense, and Profit"
-    )
-    fig.update_yaxes(title_text="Profit ($)", secondary_y=True)
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Pie charts per property totals
-    st.markdown("---")
-    st.markdown("## Totals by Property (Income vs Expense)")
-    totals = df.groupby("Property")[['Income', 'Expense']].sum().reset_index()
-    for _, row in totals.iterrows():
-        prop = row['Property']
-        inc = row['Income']
-        exp = row['Expense']
-        st.subheader(prop)
-        pie = go.Figure(
-            go.Pie(
-                labels=["Income", "Expense"],
-                values=[inc, exp],
-                hole=0.4
-            )
-        )
-        pie.update_layout(
-            title_text=f"${inc:,.2f} Income vs ${exp:,.2f} Expense"
-        )
-        st.plotly_chart(pie, use_container_width=True)
+    except Exception as e:
+        st.error(f"Failed to load dashboard: {e}")
