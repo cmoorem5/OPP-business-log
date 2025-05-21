@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-from utils.google_sheets import load_sheet_as_df
 import re
+from utils.google_sheets import load_sheet_as_df, get_worksheet
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[:, df.columns.str.strip() != ""]
@@ -30,6 +30,37 @@ def extract_first_valid_date(date_str):
                 date += f"/{pd.Timestamp.now().year}"
             return pd.to_datetime(date, errors='coerce')
     return None
+
+def inject_recurring_expenses(template_sheet="2025 Recurring Expenses", target_sheet="2025 OPP Expenses"):
+    try:
+        df = load_sheet_as_df(template_sheet)
+        df = df.dropna(subset=["Date", "Purchaser", "Item/Description", "Property", "Category", "Amount"])
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+        df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce")
+        df["Month"] = df["Date"].dt.strftime("%B")
+
+        ws = get_worksheet(target_sheet)
+        headers = ws.row_values(1)
+
+        count = 0
+        for _, row in df.iterrows():
+            row_data = {
+                "Month": row["Month"],
+                "Date": row["Date"].strftime("%Y-%m-%d"),
+                "Purchaser": row["Purchaser"],
+                "Item/Description": row["Item/Description"],
+                "Property": row["Property"],
+                "Category": row["Category"],
+                "Amount": row["Amount"],
+                "Comments": row.get("Comments", ""),
+                "Receipt Link": ""
+            }
+            ws.append_row([row_data.get(h, "") for h in headers], value_input_option="USER_ENTERED")
+            count += 1
+        return count
+    except Exception as e:
+        st.error(f"Recurring expense injection failed: {e}")
+        return 0
 
 def show():
     st.title("📂 View Logged Entries")
@@ -125,3 +156,11 @@ def show():
             st.markdown(filtered.to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
             st.dataframe(filtered, use_container_width=True)
+
+        st.markdown("---")
+        if st.button("📥 Inject Recurring Expenses"):
+            inserted = inject_recurring_expenses()
+            if inserted:
+                st.success(f"{inserted} recurring expense(s) injected into 2025 OPP Expenses.")
+            else:
+                st.warning("No rows injected.")
