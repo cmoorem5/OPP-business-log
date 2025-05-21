@@ -66,6 +66,15 @@ def show():
             expense_summary = exp.groupby("Month")["Amount"].sum().reindex(month_order, fill_value=0)
             profit_summary = income_summary - expense_summary
 
+            # Show debug output for grouped values
+            with st.expander(f"🔍 Debug Data for {prop}"):
+                st.write("Income Summary:")
+                st.write(income_summary)
+                st.write("Expense Summary:")
+                st.write(expense_summary)
+                st.write("Profit Summary:")
+                st.write(profit_summary)
+
             fig, ax = plt.subplots(figsize=(10, 4))
             ax.bar(income_summary.index, income_summary.values, label="Income", alpha=0.7)
             ax.bar(expense_summary.index, expense_summary.values, label="Expenses", alpha=0.7)
