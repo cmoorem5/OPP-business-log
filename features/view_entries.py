@@ -50,6 +50,9 @@ def inject_recurring_expenses(template_sheet="2025 Recurring Expenses", target_s
 
         count = 0
         for _, row in df.iterrows():
+            base_comment = str(row.get("Comments", "")).strip()
+            final_comment = f"{base_comment} (Recurring)" if base_comment else "Recurring"
+
             row_data = {
                 "Month": row["Month"],
                 "Date": row["Date"].strftime("%Y-%m-%d"),
@@ -58,7 +61,7 @@ def inject_recurring_expenses(template_sheet="2025 Recurring Expenses", target_s
                 "Property": row["Property"],
                 "Category": row["Category"],
                 "Amount": row["Amount"],
-                "Comments": row.get("Comments", ""),
+                "Comments": final_comment,
                 "Receipt Link": ""
             }
             ws.append_row([row_data.get(h, "") for h in headers], value_input_option="USER_ENTERED")
