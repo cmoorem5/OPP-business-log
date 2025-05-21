@@ -1,19 +1,30 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import re
 from utils.google_sheets import load_sheet_as_df
+import re
 
 
-def extract_start_date(date_range_str):
-    if not isinstance(date_range_str, str):
+def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.loc[:, df.columns.str.strip() != ""]
+    counts, new_cols = {}, []
+    for col in df.columns:
+        counts[col] = counts.get(col, 0)
+        new_cols.append(col if counts[col] == 0 else f"{col}_{counts[col]}")
+        counts[col] += 1
+    df.columns = new_cols
+    return df
+
+
+def extract_first_valid_date(date_str):
+    if not isinstance(date_str, str):
         return None
-    date_range_str = date_range_str.replace("–", "-").replace("--", "-").strip()
+    date_str = date_str.replace("–", "-").replace("--", "-").strip()
     patterns = [
-        r"\d{4}-\d{2}-\d{2}", r"\d{2}/\d{2}/\d{4}", r"\d{2}-\d{2}-\d{4}", r"\d{2}/\d{2}"
+        r"\d{4}-\d{2}-\d{2}", r"\d{2}/\d{2}/\d{4}",
+        r"\d{2}-\d{2}-\d{4}", r"\d{2}/\d{2}"
     ]
     for pattern in patterns:
-        match = re.search(pattern, date_range_str)
+        match = re.search(pattern, date_str)
         if match:
             date = match.group(0)
             if len(date) == 5:
@@ -22,142 +33,95 @@ def extract_start_date(date_range_str):
     return None
 
 
-def inject_recurring_expenses(template_sheet="2025 Recurring Expenses", target_sheet="2025 OPP Expenses"):
-    try:
-        df = load_sheet_as_df(template_sheet)
-        required = ["Date", "Item/Description", "Purchaser", "Property", "Category", "Amount"]
-
-        missing = [col for col in required if col not in df.columns]
-        if missing:
-            st.error(f"Missing required column(s): {missing} in {template_sheet}")
-            st.write("Detected columns:", list(df.columns))
-            return 0
-
-        df = df.dropna(subset=required)
-        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-        df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce")
-        df["Month"] = df["Date"].dt.strftime("%B")
-
-        from utils.google_sheets import get_worksheet
-        ws = get_worksheet(target_sheet)
-        headers = ws.row_values(1)
-
-        existing_df = load_sheet_as_df(target_sheet)
-        existing_df["Date"] = pd.to_datetime(existing_df["Date"], errors="coerce")
-        existing_df["Item/Description"] = existing_df["Item/Description"].astype(str)
-
-        existing_pairs = set(
-            zip(existing_df["Date"].dt.strftime("%Y-%m-%d"), existing_df["Item/Description"])
-        )
-
-        count, skipped = 0, 0
-        for _, row in df.iterrows():
-            date_str = row["Date"].strftime("%Y-%m-%d")
-            description = str(row["Item/Description"]).strip()
-            if (date_str, description) in existing_pairs:
-                skipped += 1
-                continue
-
-            base_comment = str(row.get("Comments", "")).strip()
-            final_comment = f"{base_comment} (Recurring)" if base_comment else "Recurring"
-
-            row_data = {
-                "Month": row["Month"],
-                "Date": date_str,
-                "Purchaser": row["Purchaser"],
-                "Item/Description": description,
-                "Property": row["Property"],
-                "Category": row["Category"],
-                "Amount": row["Amount"],
-                "Comments": final_comment,
-                "Receipt Link": ""
-            }
-            ws.append_row([row_data.get(h, "") for h in headers], value_input_option="USER_ENTERED")
-            count += 1
-
-        if skipped:
-            st.info(f"{skipped} duplicate row(s) skipped.")
-        return count
-
-    except Exception as e:
-        st.error(f"Recurring expense injection failed: {e}")
-        return 0
-
-
 def show():
-    st.title("📊 Dashboard (2025 Overview)")
+    st.title("📂 View Logged Entries")
 
-    try:
-        income_df = load_sheet_as_df("2025 OPP Income")
-        expense_df = load_sheet_as_df("2025 OPP Expenses")
+    if st.button("🔄 Refresh Data"):
+        load_sheet_as_df.clear()
+        try:
+            st.experimental_rerun()
+        except AttributeError:
+            st.warning("Cache cleared. Please reload the page (F5) to see updated data.")
+            return
 
-        # Clean Income Data
-        income_df["Income Amount"] = pd.to_numeric(income_df["Income Amount"], errors="coerce")
-        income_df = income_df.dropna(subset=["Income Amount"])
-        income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_start_date)
-        income_df = income_df.dropna(subset=["Rental Start Date"])
-        income_df["Month"] = income_df["Rental Start Date"].dt.strftime("%B")
-        income_df["Property"] = income_df["Property"].fillna("Unknown").str.strip()
+    income_df = _clean_df(load_sheet_as_df("2025 OPP Income"))
+    expense_df = _clean_df(load_sheet_as_df("2025 OPP Expenses"))
 
-        # Clean Expense Data
-        expense_df["Amount"] = pd.to_numeric(expense_df["Amount"], errors="coerce")
-        expense_df = expense_df.dropna(subset=["Amount"])
-        expense_df["Date"] = pd.to_datetime(expense_df["Date"], errors="coerce")
-        expense_df = expense_df.dropna(subset=["Date"])
-        expense_df["Month"] = expense_df["Date"].dt.strftime("%B")
-        expense_df["Property"] = expense_df["Property"].fillna("Unknown").str.strip()
+    choice = st.radio("View", ["Income", "Expense"], key="view_option")
+    if choice == "Income":
+        st.subheader("💰 Income Entries")
+        income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
+        skipped = income_df[income_df["Rental Start Date"].isna()]
+        df = income_df.dropna(subset=["Rental Start Date"]).copy()
 
-        month_order = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ]
+        df["Rental Month"] = df["Rental Start Date"].dt.strftime("%B")
+        df["Rental Year"] = df["Rental Start Date"].dt.year
 
-        # Show what properties and months were detected
-        st.markdown("### 🛠️ Debug Info")
-        st.markdown(f"**Detected Income Properties:** {sorted(income_df['Property'].unique().tolist())}")
-        st.markdown(f"**Detected Expense Properties:** {sorted(expense_df['Property'].unique().tolist())}")
+        props = st.multiselect("Property", df["Property"].dropna().unique().tolist(), default=df["Property"].dropna().unique().tolist())
+        today = pd.Timestamp.now().date()
+        date_range = st.date_input("Rental Start Date Range", [today.replace(day=1), today], key="date_range_income")
 
-        properties = sorted(set(income_df["Property"]).union(set(expense_df["Property"])))
+        mask = df["Property"].isin(props)
+        if isinstance(date_range, list) and len(date_range) == 2:
+            start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
+            mask &= df["Rental Start Date"].between(start, end)
 
-        for prop in properties:
-            st.subheader(f"🏠 {prop} Summary")
-            inc = income_df[income_df["Property"] == prop]
-            exp = expense_df[expense_df["Property"] == prop]
+        filtered = df.loc[mask]
+        st.dataframe(filtered, use_container_width=True)
 
-            income_summary = inc.groupby("Month")["Income Amount"].sum().reindex(month_order, fill_value=0)
-            expense_summary = exp.groupby("Month")["Amount"].sum().reindex(month_order, fill_value=0)
-            profit_summary = income_summary - expense_summary
+        if not skipped.empty:
+            st.warning(f"{len(skipped)} row(s) skipped due to unreadable rental dates.")
+            with st.expander("🔍 View Skipped Rows"):
+                st.dataframe(skipped[["Rental Dates"]])
 
-            # Show debug output for grouped values
-            with st.expander(f"🔍 Debug Data for {prop}"):
-                st.write("Income Summary:")
-                st.write(income_summary)
-                st.write("Expense Summary:")
-                st.write(expense_summary)
-                st.write("Profit Summary:")
-                st.write(profit_summary)
+    else:
+        st.subheader("💸 Expense Entries")
+        df = expense_df.copy()
 
-            fig, ax = plt.subplots(figsize=(10, 4))
-            ax.bar(income_summary.index, income_summary.values, label="Income", alpha=0.7)
-            ax.bar(expense_summary.index, expense_summary.values, label="Expenses", alpha=0.7)
-            ax.plot(profit_summary.index, profit_summary.values, label="Profit", color="green", linewidth=2)
-            ax.set_title(f"{prop} – Monthly Overview")
-            ax.set_ylabel("USD")
-            ax.legend()
-            ax.tick_params(axis='x', rotation=45)
-            st.pyplot(fig)
+        if "Receipt Link" in df.columns:
+            df["Receipt Link"] = df["Receipt Link"].apply(
+                lambda url: f'<a href="{url}" target="_blank">View Receipt</a>' if isinstance(url, str) and url else ""
+            )
 
-            st.markdown(f"**YTD Income:** ${income_summary.sum():,.2f}  ")
-            st.markdown(f"**YTD Expenses:** ${expense_summary.sum():,.2f}  ")
-            st.markdown(f"**YTD Profit:** ${profit_summary.sum():,.2f}")
+        props = st.multiselect("Property", df["Property"].dropna().unique().tolist(), default=df["Property"].dropna().unique().tolist())
+        statuses = df["Complete"].dropna().unique().tolist() if "Complete" in df.columns else []
+        selected_statuses = st.multiselect("Status", statuses, default=statuses) if statuses else None
+        categories = df["Category"].dropna().unique().tolist() if "Category" in df.columns else []
+        selected_categories = st.multiselect("Category", categories, default=categories) if categories else None
 
-        with st.expander("📄 View Cleaned Income/Expense Data"):
-            show_data = st.checkbox("Show raw tables", key="show_raw_data")
-            if show_data:
-                st.markdown("### Income Data")
-                st.dataframe(income_df, use_container_width=True)
-                st.markdown("### Expense Data")
-                st.dataframe(expense_df, use_container_width=True)
+        date_range = st.date_input("Expense Date Range", [pd.to_datetime("2025-01-01"), pd.Timestamp.now()], key="date_range_expense")
 
-    except Exception as e:
-        st.error(f"Dashboard failed to load: {e}")
+        mask = df["Property"].isin(props)
+        if "Date" in df.columns:
+            df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+            if isinstance(date_range, list) and len(date_range) == 2:
+                start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
+                mask &= df["Date"].between(start, end)
+        if selected_statuses and "Complete" in df.columns:
+            mask &= df["Complete"].isin(selected_statuses)
+        if selected_categories and "Category" in df.columns:
+            mask &= df["Category"].isin(selected_categories)
+
+        filtered = df.loc[mask]
+
+        if "Receipt Link" in filtered.columns:
+            st.markdown(filtered.to_html(escape=False, index=False), unsafe_allow_html=True)
+        else:
+            st.dataframe(filtered, use_container_width=True)
+
+        st.markdown("---")
+        if st.button("📥 Inject Recurring Expenses"):
+            from features.dashboard import inject_recurring_expenses
+            inserted = inject_recurring_expenses()
+            if inserted:
+                st.success(f"{inserted} recurring expense(s) injected into 2025 OPP Expenses.")
+            else:
+                st.warning("No new rows injected (duplicates may have been skipped).")
+
+            # Debug: show columns from the recurring sheet
+            try:
+                df_debug = load_sheet_as_df("2025 Recurring Expenses")
+                st.info("🔍 Columns in '2025 Recurring Expenses':")
+                st.write(list(df_debug.columns))
+            except Exception as e:
+                st.error(f"Failed to load recurring sheet: {e}")
