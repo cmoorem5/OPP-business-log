@@ -63,8 +63,8 @@ def show():
         exp = expense_df[expense_df["Property"] == prop]
 
         # Safely calculate totals
-        total_income = inc["Amount"].astype(float).sum() if "Amount" in inc else 0
-        total_expense = exp["Amount"].astype(float).sum() if "Amount" in exp else 0
+        total_income = inc["Amount"].astype(float).sum() if "Amount" in inc.columns else 0
+        total_expense = exp["Amount"].astype(float).sum() if "Amount" in exp.columns else 0
         profit = total_income - total_expense
 
         col1.metric("Total Income", f"${total_income:,.2f}")
@@ -73,8 +73,8 @@ def show():
 
         with st.expander("📈 Monthly Breakdown"):
             monthly = pd.DataFrame({
-                "Income": inc.groupby("Month")["Amount"].sum() if "Amount" in inc else pd.Series(dtype=float),
-                "Expenses": exp.groupby("Month")["Amount"].sum() if "Amount" in exp else pd.Series(dtype=float)
+                "Income": inc.groupby("Month")["Amount"].sum() if "Amount" in inc.columns else pd.Series(dtype=float),
+                "Expenses": exp.groupby("Month")["Amount"].sum() if "Amount" in exp.columns else pd.Series(dtype=float)
             }).reindex(month_order).fillna(0)
 
             st.bar_chart(monthly)
@@ -123,3 +123,4 @@ def show():
                 st.success(f"{inserted} recurring expense(s) injected into {year} OPP Expenses.")
             else:
                 st.info("No new rows injected. Possible duplicates skipped.")
+
