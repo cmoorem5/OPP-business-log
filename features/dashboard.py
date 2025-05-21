@@ -35,7 +35,7 @@ def show():
         income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_start_date)
         income_df = income_df.dropna(subset=["Rental Start Date"])
         income_df["Month"] = income_df["Rental Start Date"].dt.strftime("%B")
-        income_df["Property"] = income_df["Property"].fillna("Unknown")
+        income_df["Property"] = income_df["Property"].fillna("Unknown").str.strip()
 
         # Clean Expense Data
         expense_df["Amount"] = pd.to_numeric(expense_df["Amount"], errors="coerce")
@@ -43,15 +43,20 @@ def show():
         expense_df["Date"] = pd.to_datetime(expense_df["Date"], errors="coerce")
         expense_df = expense_df.dropna(subset=["Date"])
         expense_df["Month"] = expense_df["Date"].dt.strftime("%B")
-        expense_df["Property"] = expense_df["Property"].fillna("Unknown")
+        expense_df["Property"] = expense_df["Property"].fillna("Unknown").str.strip()
 
         month_order = [
             "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
         ]
 
-        # Grouped summaries by property
+        # Show what properties and months were detected
+        st.markdown("### 🛠️ Debug Info")
+        st.markdown(f"**Detected Income Properties:** {sorted(income_df['Property'].unique().tolist())}")
+        st.markdown(f"**Detected Expense Properties:** {sorted(expense_df['Property'].unique().tolist())}")
+
         properties = sorted(set(income_df["Property"]).union(set(expense_df["Property"])))
+
         for prop in properties:
             st.subheader(f"🏠 {prop} Summary")
             inc = income_df[income_df["Property"] == prop]
@@ -75,7 +80,6 @@ def show():
             st.markdown(f"**YTD Expenses:** ${expense_summary.sum():,.2f}  ")
             st.markdown(f"**YTD Profit:** ${profit_summary.sum():,.2f}")
 
-        # Optional: CSV preview/download
         with st.expander("📄 View Cleaned Income/Expense Data"):
             show_data = st.checkbox("Show raw tables", key="show_raw_data")
             if show_data:
