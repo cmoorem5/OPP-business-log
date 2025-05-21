@@ -41,7 +41,6 @@ def show():
     expense_df = _clean_df(load_sheet_as_df(f"{year} OPP Expenses"))
     expense_df["Property"] = expense_df["Property"].astype(str).str.strip().str.title()
 
-    # FIX: Normalize all Amount columns globally
     income_df["Amount"] = pd.to_numeric(income_df["Amount"], errors="coerce").fillna(0)
     expense_df["Amount"] = pd.to_numeric(expense_df["Amount"], errors="coerce").fillna(0)
 
@@ -73,10 +72,14 @@ def show():
         col2.metric("Total Expenses", f"${total_expense:,.2f}")
         st.metric("Profit / Loss", f"${profit:,.2f}", delta_color="inverse")
 
-        with st.expander("📈 Monthly Breakdown"):
+        with st.expander("📈 Monthly Breakdown + Category Filter"):
+            available_categories = exp["Category"].dropna().unique().tolist()
+            selected_categories = st.multiselect("Filter by Category (optional)", available_categories, default=available_categories)
+
+            filtered_exp = exp[exp["Category"].isin(selected_categories)]
             monthly = pd.DataFrame({
                 "Income": inc.groupby("Month")["Amount"].sum(),
-                "Expenses": exp.groupby("Month")["Amount"].sum()
+                "Expenses": filtered_exp.groupby("Month")["Amount"].sum()
             }).reindex(month_order).fillna(0)
 
             monthly["Profit"] = monthly["Income"] - monthly["Expenses"]
@@ -94,6 +97,15 @@ def show():
 
             csv = monthly.reset_index().to_csv(index=False).encode("utf-8")
             st.download_button("📥 Download CSV", csv, f"{prop}_{year}_summary.csv", "text/csv")
+
+            st.markdown("#### 🔁 Recurring Keyword Totals")
+            recurring_keywords = ["mortgage", "heloc", "insurance", "utilities"]
+            match_df = exp[exp["Item"].str.lower().fillna("").str.contains("|".join(recurring_keywords))]
+            if not match_df.empty:
+                summary = match_df.groupby("Item")["Amount"].sum().sort_values(ascending=False)
+                st.dataframe(summary.reset_index().rename(columns={"Item": "Recurring Item", "Amount": "Total ($)"}))
+            else:
+                st.info("No recurring keyword matches found.")
 
         with st.expander("📍 Pie Charts"):
             pie_data = pd.Series({
