@@ -45,6 +45,9 @@ def show():
             return
 
     income_df = _clean_df(load_sheet_as_df("2025 OPP Income"))
+    if "Income Amount" in income_df.columns:
+        income_df.rename(columns={"Income Amount": "Amount"}, inplace=True)
+
     expense_df = _clean_df(load_sheet_as_df("2025 OPP Expenses"))
 
     choice = st.radio("View", ["Income", "Expense"], key="view_option")
@@ -111,7 +114,7 @@ def show():
 
         st.markdown("---")
         if st.button("📥 Inject Recurring Expenses"):
-            from features.dashboard import inject_recurring_expenses
+            from features.recurring import inject_recurring_expenses
             inserted = inject_recurring_expenses()
             if inserted:
                 st.success(f"{inserted} recurring expense(s) injected into 2025 OPP Expenses.")
