@@ -26,10 +26,12 @@ def inject_recurring_expenses(template_sheet="2025 Recurring Expenses", target_s
     try:
         df = load_sheet_as_df(template_sheet)
         required = ["Date", "Item/Description", "Purchaser", "Property", "Category", "Amount"]
-        for col in required:
-            if col not in df.columns:
-                st.error(f"Missing required column: '{col}' in {template_sheet}")
-                return 0
+
+        missing = [col for col in required if col not in df.columns]
+        if missing:
+            st.error(f"Missing required column(s): {missing} in {template_sheet}")
+            st.write("Detected columns:", list(df.columns))
+            return 0
 
         df = df.dropna(subset=required)
         df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
