@@ -1,6 +1,6 @@
 import streamlit as st
 from PIL import Image
-from features import dashboard, log_entry, view_entries, receipts, export
+from features import dashboard, log_entry, view_entries, receipts, export, debug_expenses
 from datetime import datetime
 
 # Page configuration
