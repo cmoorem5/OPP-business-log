@@ -101,12 +101,16 @@ def show():
             if "Amount" not in df.columns:
                 continue
             pivot = df.pivot_table(index="Month", columns="Property", values="Amount", aggfunc="sum", fill_value=0)
-            pivot = pivot.reindex(month_order).fillna(0)
+pivot = pivot.reindex(month_order).fillna(0)
 
-            st.markdown(f"**{label} Heatmap**")
-            fig, ax = plt.subplots(figsize=(10, 4))
-            sns.heatmap(pivot, annot=True, fmt=".0f", cmap=cmap, ax=ax)
-            st.pyplot(fig)
+# Sanitize any formatted strings like '1,325.00'
+pivot = pivot.applymap(lambda x: float(str(x).replace(",", "")) if pd.notna(x) else 0)
+
+st.markdown(f"**{label} Heatmap**")
+fig, ax = plt.subplots(figsize=(10, 4))
+sns.heatmap(pivot, annot=True, fmt=".0f", cmap=cmap, ax=ax)
+st.pyplot(fig)
+
 
     st.markdown("---")
     with st.expander("📂 View Logged Entries"):
