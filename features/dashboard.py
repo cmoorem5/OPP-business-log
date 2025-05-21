@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from utils.google_sheets import load_sheet_as_df
-from features.dashboard import inject_recurring_expenses
+from features.recurring import inject_recurring_expenses
 import re
 import matplotlib.pyplot as plt
 import seaborn as sns
