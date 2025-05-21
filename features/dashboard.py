@@ -66,8 +66,9 @@ def show():
         exp = expense_df[expense_df["Property"] == prop]
 
         # Safely calculate totals
-        total_income = inc["Amount"].astype(float).sum() if "Amount" in inc.columns else 0
-        total_expense = exp["Amount"].astype(float).sum() if "Amount" in exp.columns else 0
+        total_income = inc["Amount"].astype(str).str.replace(",", "").astype(float).sum() if "Amount" in inc.columns else 0
+total_expense = exp["Amount"].astype(str).str.replace(",", "").astype(float).sum() if "Amount" in exp.columns else 0
+
         profit = total_income - total_expense
 
         col1.metric("Total Income", f"${total_income:,.2f}")
