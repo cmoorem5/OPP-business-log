@@ -63,5 +63,5 @@ routes = {
 routes[page].show()
 
 # --- Footer Toast ---
-st.toast(f"📅 {datetime.now().strftime('%B %d, %Y %I:%M %p')} • OPP Finance Tracker", icon="📊")
+
 
