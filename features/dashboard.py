@@ -4,7 +4,6 @@ import re
 import matplotlib.pyplot as plt
 from utils.google_sheets import load_sheet_as_df
 
-
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[:, df.columns.str.strip() != ""]
     counts, new_cols = {}, []
@@ -14,7 +13,6 @@ def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
         counts[col] += 1
     df.columns = new_cols
     return df
-
 
 def extract_first_valid_date(date_str):
     if not isinstance(date_str, str):
@@ -30,7 +28,6 @@ def extract_first_valid_date(date_str):
             return pd.to_datetime(date, errors="coerce")
     return None
 
-
 def show():
     st.title("📊 Dashboard")
 
@@ -39,20 +36,24 @@ def show():
     income_df = _clean_df(load_sheet_as_df(f"{year} OPP Income"))
     income_df.columns = income_df.columns.str.strip().str.title()
 
+    # ✅ Required income columns check
     required_income_columns = [
         "Month", "Name", "Property", "Rental Dates",
         "Amount Owed", "Amount Received", "Balance", "Status"
     ]
     missing_cols = [col for col in required_income_columns if col not in income_df.columns]
     if missing_cols:
-        st.error(f"🚫 Missing column(s) in income sheet: {', '.join(missing_cols)}")
+        st.error(f"🚫 The following required column(s) are missing from the income sheet: {', '.join(missing_cols)}")
         st.stop()
 
+    # 🔄 Backward compatibility: rename old column if needed
     if "Income Amount" in income_df.columns:
         income_df.rename(columns={"Income Amount": "Amount Owed"}, inplace=True)
 
+    # 💵 Ensure numeric conversion
     for col in ["Amount Owed", "Amount Received", "Balance"]:
-        income_df[col] = pd.to_numeric(income_df[col].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
+        if col in income_df.columns:
+            income_df[col] = pd.to_numeric(income_df[col].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
 
     income_df["Property"] = income_df["Property"].astype(str).str.strip().str.title()
     income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
@@ -117,11 +118,11 @@ def show():
 
             csv = monthly.reset_index().to_csv(index=False).encode("utf-8")
             st.download_button(
-                "📥 Download CSV",
-                csv,
-                file_name=f"{prop.lower()}_{year}_summary.csv",
+                label="📥 Download CSV",
+                data=csv,
+                file_name=f"{prop}_{year}_summary.csv",
                 mime="text/csv",
-                key=f"{prop}_summary_btn"
+                key=f"{prop}_{year}_summary_download"
             )
 
         with st.expander("📍 Pie Charts"):
@@ -159,11 +160,11 @@ def show():
 
                 csv = due_df.to_csv(index=False).encode("utf-8")
                 st.download_button(
-                    "📥 Download Outstanding Payments CSV",
-                    csv,
-                    file_name=f"{prop.lower()}_payments_due.csv",
+                    label="📥 Download Outstanding Payments CSV",
+                    data=csv,
+                    file_name=f"{prop}_{year}_payments_due.csv",
                     mime="text/csv",
-                    key=f"{prop}_payments_due_btn"
+                    key=f"{prop}_{year}_payments_due_download"
                 )
 
     st.markdown("---")
@@ -177,4 +178,3 @@ def show():
             st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
             st.dataframe(df, use_container_width=True)
-
