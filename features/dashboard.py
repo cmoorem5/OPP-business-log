@@ -104,8 +104,8 @@ def show():
             monthly["Profit"] = monthly["Income (Owed)"] - monthly["Expenses"]
 
             fig, ax = plt.subplots(figsize=(8, 4))
-            ax.bar(monthly.index, monthly["Income (Owed)"], label="Income", color="tab:green")
-            ax.bar(monthly.index, monthly["Expenses"], label="Expenses", color="tab:red", alpha=0.7)
+            ax.bar(monthly.index, monthly["Income (Owed)"], label="Income", color="#2ecc71")
+            ax.bar(monthly.index, monthly["Expenses"], label="Expenses", color="#e74c3c", alpha=0.7)
             ax.plot(monthly.index, monthly["Profit"], color="black", marker="o", linewidth=2, label="Profit")
 
             ax.set_ylabel("Amount ($)")
