@@ -4,6 +4,7 @@ import re
 import matplotlib.pyplot as plt
 from utils.google_sheets import load_sheet_as_df
 
+
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[:, df.columns.str.strip() != ""]
     counts, new_cols = {}, []
@@ -13,6 +14,7 @@ def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
         counts[col] += 1
     df.columns = new_cols
     return df
+
 
 def extract_first_valid_date(date_str):
     if not isinstance(date_str, str):
@@ -28,32 +30,29 @@ def extract_first_valid_date(date_str):
             return pd.to_datetime(date, errors="coerce")
     return None
 
+
 def show():
-    st.title("📊 Dashboard")
+    st.title("📊 Income & Expense Dashboard")
 
     year = st.radio("Select Year", ["2025", "2026"], horizontal=True)
 
     income_df = _clean_df(load_sheet_as_df(f"{year} OPP Income"))
     income_df.columns = income_df.columns.str.strip().str.title()
 
-    # ✅ Required income columns check
-    required_income_columns = [
+    required_cols = [
         "Month", "Name", "Property", "Rental Dates",
         "Amount Owed", "Amount Received", "Balance", "Status"
     ]
-    missing_cols = [col for col in required_income_columns if col not in income_df.columns]
+    missing_cols = [col for col in required_cols if col not in income_df.columns]
     if missing_cols:
-        st.error(f"🚫 The following required column(s) are missing from the income sheet: {', '.join(missing_cols)}")
+        st.error(f"🚫 Missing column(s) in income sheet: {', '.join(missing_cols)}")
         st.stop()
 
-    # 🔄 Backward compatibility: rename old column if needed
     if "Income Amount" in income_df.columns:
         income_df.rename(columns={"Income Amount": "Amount Owed"}, inplace=True)
 
-    # 💵 Ensure numeric conversion
     for col in ["Amount Owed", "Amount Received", "Balance"]:
-        if col in income_df.columns:
-            income_df[col] = pd.to_numeric(income_df[col].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
+        income_df[col] = pd.to_numeric(income_df[col].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
 
     income_df["Property"] = income_df["Property"].astype(str).str.strip().str.title()
     income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
@@ -74,9 +73,9 @@ def show():
     month_order = list(pd.date_range("2025-01-01", "2025-12-31", freq="MS").strftime("%B").unique())
 
     for prop in properties:
-        st.markdown(f"### 🏡 {prop}")
-        col1, col2 = st.columns(2)
+        st.markdown(f"## 🏠 {prop} Summary")
 
+        col1, col2 = st.columns(2)
         inc = income_df[income_df["Property"].str.lower() == prop.lower()]
         exp = expense_df[expense_df["Property"].str.lower() == prop.lower()]
 
@@ -88,7 +87,7 @@ def show():
         col2.metric("Total Expenses", f"${total_expense:,.2f}")
         st.metric("Profit / Loss", f"${profit:,.2f}", delta_color="inverse")
 
-        with st.expander("📈 Monthly Breakdown + Category Filter"):
+        with st.expander("📈 Monthly Breakdown + Category Filter", expanded=True):
             available_categories = exp["Category"].dropna().unique().tolist()
             selected_categories = st.multiselect(
                 "Filter by Category (optional)",
@@ -102,7 +101,6 @@ def show():
                 "Income (Owed)": inc.groupby("Month")["Amount Owed"].sum(),
                 "Expenses": filtered_exp.groupby("Month")["Amount"].sum()
             }).reindex(month_order).fillna(0)
-
             monthly["Profit"] = monthly["Income (Owed)"] - monthly["Expenses"]
 
             fig, ax = plt.subplots(figsize=(8, 4))
@@ -118,14 +116,14 @@ def show():
 
             csv = monthly.reset_index().to_csv(index=False).encode("utf-8")
             st.download_button(
-                label="📥 Download CSV",
-                data=csv,
+                "📥 Download CSV",
+                csv,
                 file_name=f"{prop}_{year}_summary.csv",
                 mime="text/csv",
-                key=f"{prop}_{year}_summary_download"
+                key=f"{prop}_{year}_summary_btn"
             )
 
-        with st.expander("📍 Pie Charts"):
+        with st.expander("📍 Pie Charts", expanded=False):
             pie_data = pd.Series({
                 "Income (Owed)": total_income,
                 "Expenses": total_expense
@@ -135,7 +133,7 @@ def show():
             ax.axis("equal")
             st.pyplot(fig)
 
-        with st.expander("🚨 Payments Due"):
+        with st.expander("🚨 Payments Due", expanded=True):
             due_df = inc[inc["Balance"] > 0].copy()
             due_df["Rental Start Date"] = due_df["Rental Dates"].apply(extract_first_valid_date)
             today = pd.Timestamp.now().normalize()
@@ -144,8 +142,8 @@ def show():
                 st.success("✅ All bookings are paid in full!")
             else:
                 due_df["Alert"] = due_df.apply(
-                    lambda row: "🔴 Overdue" if row["Rental Start Date"] and row["Rental Start Date"] < today
-                    else "🟡 Payment Pending", axis=1
+                    lambda row: "🔴 **Overdue**" if row["Rental Start Date"] and row["Rental Start Date"] < today
+                    else "🟡 **Pending**", axis=1
                 )
 
                 display_cols = [
@@ -160,15 +158,15 @@ def show():
 
                 csv = due_df.to_csv(index=False).encode("utf-8")
                 st.download_button(
-                    label="📥 Download Outstanding Payments CSV",
-                    data=csv,
+                    "📥 Download Outstanding Payments CSV",
+                    csv,
                     file_name=f"{prop}_{year}_payments_due.csv",
                     mime="text/csv",
-                    key=f"{prop}_{year}_payments_due_download"
+                    key=f"{prop}_{year}_payments_due_btn"
                 )
 
     st.markdown("---")
-    with st.expander("📂 View Logged Entries"):
+    with st.expander("📂 View Logged Entries", expanded=False):
         view_choice = st.radio("Select Type", ["Income", "Expense"], horizontal=True)
         df = income_df if view_choice == "Income" else expense_df
 
