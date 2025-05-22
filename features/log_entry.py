@@ -12,7 +12,7 @@ def show():
     st.title("📝 Log New Entry")
     entry_type = st.selectbox("Select Entry Type", ["Income", "Expense"])
 
-    if entry_type == "Income":
+       if entry_type == "Income":
         with st.form("income_form", clear_on_submit=True):
             year = st.selectbox("Log Income To:", ["2025", "2026"], key="income_year")
             sheet_name = f"{year} OPP Income"
@@ -23,19 +23,56 @@ def show():
             rental_range = f"{rental_dates[0]} – {rental_dates[1]}"
             property_location = st.selectbox("Property", ["Florida", "Maine"], key="income_property")
             source = st.text_input("Income Source", key="income_source")
-            invoice_no = st.text_input("Description/Invoice No.", key="invoice_no")
-            amount = st.number_input("Amount", min_value=0.0, step=0.01, key="income_amount")
-            status = st.selectbox("Complete", ["Paid", "Cancelled", "PMT Due", "Downpayment Received"], key="income_status")
+            amount_owed = st.number_input("Amount Owed", min_value=0.0, step=0.01, key="income_amount_owed")
+            amount_received = st.number_input("Amount Received", min_value=0.0, step=0.01, key="income_amount_received")
+            status = st.selectbox("Payment Status", ["Paid", "Cancelled", "PMT Due", "Downpayment Received"], key="income_status")
 
-            st.markdown("#### 👤 Renter Contact Info (Optional)")
+            st.markdown("#### 👤 Renter Contact Info")
             renter_name = st.text_input("Name", key="renter_name")
             renter_address = st.text_input("Address", key="renter_address")
             renter_city = st.text_input("City", key="renter_city")
             renter_state = st.text_input("State", key="renter_state")
             renter_zip = st.text_input("Zip", key="renter_zip")
+            renter_phone = st.text_input("Phone", key="renter_phone")
             renter_email = st.text_input("Email", key="renter_email")
+            notes = st.text_area("Notes", key="income_notes")
 
             submitted = st.form_submit_button("Submit Income Entry")
+
+        if submitted:
+            errors = []
+            if amount_owed <= 0:
+                errors.append("❗ Amount Owed must be greater than zero.")
+            if amount_received < 0:
+                errors.append("❗ Amount Received cannot be negative.")
+            if errors:
+                for e in errors:
+                    st.error(e)
+            else:
+                ws = get_worksheet(sheet_name)
+                headers = ws.row_values(1)
+                row_dict = {
+                    "Month": month,
+                    "Name": renter_name,
+                    "Address": renter_address,
+                    "City": renter_city,
+                    "State": renter_state,
+                    "Zip": renter_zip,
+                    "Phone": renter_phone,
+                    "Email": renter_email,
+                    "Rental Dates": rental_range,
+                    "Property": property_location,
+                    "Income Source": source,
+                    "Amount Owed": amount_owed,
+                    "Amount Received": amount_received,
+                    "Status": status,
+                    "Notes": notes,
+                }
+                row = [row_dict.get(col, "") for col in headers]
+                with st.spinner(f"Submitting income entry to {sheet_name}..."):
+                    ws.append_row(row, value_input_option="USER_ENTERED")
+                st.success(f"✅ Income entry submitted to {sheet_name}!")
+
 
         if submitted:
             errors = []
