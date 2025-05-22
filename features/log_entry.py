@@ -12,7 +12,7 @@ def show():
     st.title("📝 Log New Entry")
     entry_type = st.selectbox("Select Entry Type", ["Income", "Expense"])
 
-       if entry_type == "Income":
+    if entry_type == "Income":
         with st.form("income_form", clear_on_submit=True):
             year = st.selectbox("Log Income To:", ["2025", "2026"], key="income_year")
             sheet_name = f"{year} OPP Income"
@@ -73,38 +73,6 @@ def show():
                     ws.append_row(row, value_input_option="USER_ENTERED")
                 st.success(f"✅ Income entry submitted to {sheet_name}!")
 
-
-        if submitted:
-            errors = []
-            if amount <= 0:
-                errors.append("❗ Amount must be greater than zero.")
-            if errors:
-                for e in errors:
-                    st.error(e)
-            else:
-                ws = get_worksheet(sheet_name)
-                headers = ws.row_values(1)
-                row_dict = {
-                    "Month": month,
-                    "Property": property_location,
-                    "Rental Dates": rental_range,
-                    "Income Source": source,
-                    "Description/Invoice No.": invoice_no,
-                    "Amount": amount,
-                    "Complete": status,
-                    "Notes": "",
-                    "Name": renter_name,
-                    "Address": renter_address,
-                    "City": renter_city,
-                    "State": renter_state,
-                    "Zip": renter_zip,
-                    "Email": renter_email,
-                }
-                row = [row_dict.get(col, "") for col in headers]
-                with st.spinner(f"Submitting income entry to {sheet_name}..."):
-                    ws.append_row(row, value_input_option="USER_ENTERED")
-                st.success(f"✅ Income entry submitted to {sheet_name}!")
-
     else:
         with st.spinner("Loading dropdown data..."):
             purchasers_df = load_sheet_as_df("Purchasers")
@@ -112,10 +80,7 @@ def show():
             purchaser_list.append("Other")
 
             expenses_df = load_sheet_as_df("2025 OPP Expenses")
-            if "Category" in expenses_df.columns:
-                category_list = sorted(expenses_df["Category"].dropna().unique().tolist())
-            else:
-                category_list = []
+            category_list = sorted(expenses_df["Category"].dropna().unique().tolist()) if "Category" in expenses_df.columns else []
             category_list.append("Other")
 
         with st.form("expense_form", clear_on_submit=True):
