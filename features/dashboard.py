@@ -39,10 +39,21 @@ def show():
     income_df = _clean_df(load_sheet_as_df(f"{year} OPP Income"))
     income_df.columns = income_df.columns.str.strip().str.title()
 
-    # Rename old column just in case
+    # ✅ Required income columns check
+    required_income_columns = [
+        "Month", "Name", "Property", "Rental Dates",
+        "Amount Owed", "Amount Received", "Balance", "Status"
+    ]
+    missing_cols = [col for col in required_income_columns if col not in income_df.columns]
+    if missing_cols:
+        st.error(f"🚫 The following required column(s) are missing from the income sheet: {', '.join(missing_cols)}")
+        st.stop()
+
+    # 🔄 Backward compatibility: rename old column if needed
     if "Income Amount" in income_df.columns:
         income_df.rename(columns={"Income Amount": "Amount Owed"}, inplace=True)
 
+    # 💵 Ensure numeric conversion
     for col in ["Amount Owed", "Amount Received", "Balance"]:
         if col in income_df.columns:
             income_df[col] = pd.to_numeric(income_df[col].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
