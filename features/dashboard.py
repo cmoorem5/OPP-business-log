@@ -116,7 +116,13 @@ def show():
             st.pyplot(fig)
 
             csv = monthly.reset_index().to_csv(index=False).encode("utf-8")
-            st.download_button("📥 Download CSV", csv, f"{prop}_{year}_summary.csv", "text/csv")
+            st.download_button(
+                "📥 Download CSV",
+                csv,
+                file_name=f"{prop.lower()}_{year}_summary.csv",
+                mime="text/csv",
+                key=f"{prop}_summary_btn"
+            )
 
         with st.expander("📍 Pie Charts"):
             pie_data = pd.Series({
@@ -152,7 +158,13 @@ def show():
                 st.dataframe(due_df, use_container_width=True)
 
                 csv = due_df.to_csv(index=False).encode("utf-8")
-                st.download_button("📥 Download Outstanding Payments CSV", csv, "payments_due.csv", "text/csv")
+                st.download_button(
+                    "📥 Download Outstanding Payments CSV",
+                    csv,
+                    file_name=f"{prop.lower()}_payments_due.csv",
+                    mime="text/csv",
+                    key=f"{prop}_payments_due_btn"
+                )
 
     st.markdown("---")
     with st.expander("📂 View Logged Entries"):
@@ -165,3 +177,4 @@ def show():
             st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
             st.dataframe(df, use_container_width=True)
+
