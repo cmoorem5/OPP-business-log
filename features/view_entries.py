@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-from utils.google_sheets import load_sheet_as_df
 import re
+from utils.google_sheets import load_sheet_as_df
 
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -41,7 +41,7 @@ def show():
         try:
             st.experimental_rerun()
         except AttributeError:
-            st.warning("Cache cleared. Please reload the page (F5) to see updated data.")
+            st.warning("Cache cleared. Please reload the page.")
             return
 
     income_df = _clean_df(load_sheet_as_df("2025 OPP Income"))
@@ -50,9 +50,11 @@ def show():
 
     expense_df = _clean_df(load_sheet_as_df("2025 OPP Expenses"))
 
-    choice = st.radio("View", ["Income", "Expense"], key="view_option")
-    if choice == "Income":
+    view_option = st.radio("View", ["Income", "Expense"], key="view_option")
+
+    if view_option == "Income":
         st.subheader("💰 Income Entries")
+
         income_df["Rental Start Date"] = income_df["Rental Dates"].apply(extract_first_valid_date)
         skipped = income_df[income_df["Rental Start Date"].isna()]
         df = income_df.dropna(subset=["Rental Start Date"]).copy()
@@ -69,8 +71,7 @@ def show():
             start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
             mask &= df["Rental Start Date"].between(start, end)
 
-        filtered = df.loc[mask]
-        st.dataframe(filtered, use_container_width=True)
+        st.dataframe(df.loc[mask], use_container_width=True)
 
         if not skipped.empty:
             st.warning(f"{len(skipped)} row(s) skipped due to unreadable rental dates.")
@@ -111,12 +112,3 @@ def show():
             st.markdown(filtered.to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
             st.dataframe(filtered, use_container_width=True)
-
-        st.markdown("---")
-        if st.button("📥 Inject Recurring Expenses"):
-            from features.recurring import inject_recurring_expenses
-            inserted = inject_recurring_expenses()
-            if inserted:
-                st.success(f"{inserted} recurring expense(s) injected into 2025 OPP Expenses.")
-            else:
-                st.warning("No new rows injected (duplicates may have been skipped).")
