@@ -26,6 +26,7 @@ def show():
             source = st.text_input("Income Source", key="income_source")
             amount_owed = st.number_input("Amount Owed", min_value=0.0, step=0.01, key="income_amount_owed")
             amount_received = st.number_input("Amount Received", min_value=0.0, step=0.01, key="income_amount_received")
+            pet_fee = st.number_input("Pet Fee (if any)", min_value=0.0, step=0.01, key="income_pet_fee")
             status = st.selectbox("Payment Status", ["Paid", "Cancelled", "PMT Due", "Downpayment Received"], key="income_status")
 
             st.markdown("#### 👤 Renter Contact Info")
@@ -69,6 +70,7 @@ def show():
                     "Income Source": source,
                     "Amount Owed": amount_owed,
                     "Amount Received": amount_received,
+                    "Pet Fee": pet_fee,
                     "Status": status,
                     "Notes": notes,
                 }
@@ -86,7 +88,7 @@ def show():
                             full_cost=amount_owed,
                             down_payment=amount_received,
                             total_due=amount_owed - amount_received,
-                            pet_fee=0.0,  # Optional: update if you add this input
+                            pet_fee=pet_fee,
                             email=renter_email,
                             output_folder_id="1KLhZ10jf_hgBxtWGPBIL4iSfVzxSFg8h"
                         )
@@ -96,9 +98,77 @@ def show():
                         st.error(f"Failed to generate agreement: {e}")
 
     else:
-        # Expense form remains unchanged...
-        ...
-    
+        with st.spinner("Loading dropdown data..."):
+            purchasers_df = load_sheet_as_df("Purchasers")
+            purchaser_list = sorted(purchasers_df["Purchaser"].dropna().unique().tolist())
+            purchaser_list.append("Other")
+
+            expenses_df = load_sheet_as_df("2025 OPP Expenses")
+            category_list = sorted(expenses_df["Category"].dropna().unique().tolist()) if "Category" in expenses_df.columns else []
+            category_list.append("Other")
+
+        with st.form("expense_form", clear_on_submit=True):
+            entry_date = st.date_input("Date", date.today(), key="expense_date")
+            purchaser = st.selectbox("Purchaser", purchaser_list, key="purchaser")
+            if purchaser == "Other":
+                purchaser = st.text_input("Enter Purchaser Name", key="purchaser_other")
+
+            item = st.text_input("Item/Description", key="item")
+            property_location = st.selectbox("Property", ["Florida", "Maine"], key="expense_property")
+            category = st.selectbox("Category", category_list, key="category")
+            if category == "Other":
+                category = st.text_input("Enter Category", key="category_other")
+
+            amount = st.number_input("Amount", min_value=0.0, step=0.01, key="expense_amount")
+            comments = st.text_area("Comments", key="comments")
+            uploaded_file = st.file_uploader("Upload Receipt File", type=["pdf", "png", "jpg", "jpeg"], key="receipt_uploader")
+
+            submitted = st.form_submit_button("Submit Expense Entry")
+
+        if submitted:
+            errors = []
+            if entry_date > date.today():
+                errors.append("❗ Date cannot be in the future.")
+            if amount <= 0:
+                errors.append("❗ Amount must be greater than zero.")
+            if errors:
+                for e in errors:
+                    st.error(e)
+            else:
+                receipt_link = ""
+                if uploaded_file:
+                    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                        tmp.write(uploaded_file.getbuffer())
+                        tmp_path = tmp.name
+                    try:
+                        with st.spinner("Uploading receipt to Drive..."):
+                            folder_id = get_drive_folder_id(entry_date)
+                            if folder_id:
+                                file_id = upload_file_to_drive(tmp_path, uploaded_file.name, folder_id)
+                                receipt_link = f"https://drive.google.com/file/d/{file_id}/view"
+                            else:
+                                st.warning(f"No folder for {entry_date.strftime('%B %Y')} — receipt not uploaded.")
+                    finally:
+                        os.remove(tmp_path)
+
+                ws = get_worksheet("2025 OPP Expenses")
+                headers = ws.row_values(1)
+                row_dict = {
+                    "Month": entry_date.strftime("%B"),
+                    "Date": entry_date.strftime("%Y-%m-%d"),
+                    "Purchaser": purchaser,
+                    "Item/Description": item,
+                    "Property": property_location,
+                    "Category": category,
+                    "Amount": amount,
+                    "Comments": comments,
+                    "Receipt Link": receipt_link,
+                }
+                row = [row_dict.get(col, "") for col in headers]
+                with st.spinner("Submitting expense entry..."):
+                    ws.append_row(row, value_input_option="USER_ENTERED")
+                st.success("✅ Expense entry submitted!")
+
     st.markdown("---")
     last = datetime.now().strftime("%B %d, %Y %I:%M %p")
     st.markdown(
