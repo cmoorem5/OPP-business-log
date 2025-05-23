@@ -32,7 +32,7 @@ def generate_rental_agreement_doc(
     email: str,
     output_folder_id: str
 ) -> str:
-    template_id = "1HIE5iVfK6gMHUfb9gprb5TLcCB-4R3WkLMk2UFr1fCo"  # Short-Term Rental Agreement
+    template_id = "14xE-keRRs4G5Y3jqcieY2EDxT8VKsqckCQ4lg3ivfzU"  # Correct Short-Term Rental Agreement ID
 
     drive_service = _get_drive_service()
     docs_service = _get_docs_service()
