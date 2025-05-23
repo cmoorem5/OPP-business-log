@@ -1,19 +1,44 @@
-# OPP Finance App
+OPP Finance App
+A polished, mobile-optimized Streamlit app to track rental income, log expenses, upload receipts, and visualize profit/loss by property. Built for modularity, speed, and seamless Google Sheets + Drive integration.
 
-A polished and modular Streamlit application to track income, expenses, upload receipts, and view profit/loss for your investment properties, with enhanced filtering, theming, caching, and version history.
+🔑 Key Features
+Income & Expense Logging
+Categorize and tag all income and expense entries by property
 
-## Key Features
+Support for tracking payment status and rental periods
 
-- **Income & Expense Logging**  
-- **Receipt Uploads**  
-- **Dashboard** with monthly profit/loss charts  
-- **View Entries** page with:  
-  - Property, date‑range, status, and category filters  
-  - Clickable receipt links  
-- **In‑page Search & Filters** for slicing data on-the-fly  
-- **Custom Theming** via injected CSS for branded fonts, colors, and shadows  
-- **Persistent Footer** showing company name, app version, and “last updated” timestamp  
-- **CSV Export** of any filtered view
+Receipt Uploads
+Upload images or PDFs with each entry
+
+Files are automatically routed to Google Drive by month
+
+Interactive Dashboard
+Monthly income, expense, and profit/loss breakdowns
+
+Separate bar charts per property + CSV download
+
+Expanders to reduce visual clutter
+
+Future-year toggle support (e.g., 2026)
+
+View Entries
+Filter by property, date range, status, and category
+
+In-page search and real-time slicing
+
+Clickable Drive links for receipts
+
+CSV export of any filtered view
+
+Custom Theming & Branding
+Injected CSS for fonts, color palette, shadows
+
+Mobile-ready UI design with compact elements
+
+Persistent Footer
+Displays business name, app version, and last-updated timestamp
+
+
 
 ## Prerequisites
 
