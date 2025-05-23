@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import re
+import matplotlib.pyplot as plt
 from utils.google_sheets import load_sheet_as_df
 from utils.google_drive import make_clickable_link
 
@@ -76,7 +77,7 @@ def show():
     else:
         st.subheader("💸 Expense Entries")
         df = _clean_df(load_sheet_as_df(f"{year} OPP Expenses"))
-        skipped = pd.DataFrame()  # not used but keeps logic consistent
+        skipped = pd.DataFrame()
         date_col = "Date"
 
     props = st.multiselect("Property", df["Property"].dropna().unique().tolist(), default=df["Property"].dropna().unique().tolist())
@@ -102,7 +103,6 @@ def show():
         st.warning(f"{len(skipped)} row(s) skipped due to unreadable rental dates.")
         with st.expander("🔍 View Skipped Rows"):
             st.dataframe(skipped[["Rental Dates"]])
-import matplotlib.pyplot as plt
 
     with st.expander("📊 Summary Charts", expanded=False):
         if "Amount" in filtered.columns:
