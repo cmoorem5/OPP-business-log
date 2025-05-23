@@ -29,6 +29,16 @@ def build_financial_summary(df_income, df_expense):
         "September": 9, "October": 10, "November": 11, "December": 12
     }
 
+    # Normalize property labels
+    property_map = {
+        "Islamorada": "Florida",
+        "Hooked on Islamorada": "Florida",
+        "Sebago": "Maine",
+        "Standish": "Maine"
+    }
+    df_income["Property"] = df_income["Property"].replace(property_map)
+    df_expense["Property"] = df_expense["Property"].replace(property_map)
+
     income_grouped = df_income.groupby(["Property", "Month"]).agg({
         "Amount Received": "sum",
         "Amount Owed": "sum"
