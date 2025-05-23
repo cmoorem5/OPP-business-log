@@ -1,7 +1,7 @@
 import streamlit as st
 from PIL import Image
 from datetime import datetime
-from features import dashboard, log_entry, view_entries, receipts, export, debug_expenses
+from features import dashboard, log_entry, view_entries, receipts, export, debug_expenses, log_payment
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -42,7 +42,15 @@ st.sidebar.title("📘 OPP Finance Tracker")
 
 page = st.sidebar.radio(
     "Navigate",
-    ["Dashboard", "Rental Entry", "View Entries", "Receipts", "Data Export", "Expense Debug"]
+    [
+        "Dashboard",
+        "Rental Entry",
+        "Log Payment",        # ✅ New Feature
+        "View Entries",
+        "Receipts",
+        "Data Export",
+        "Expense Debug"
+    ]
 )
 
 # --- Sidebar Info ---
@@ -54,6 +62,7 @@ with st.sidebar.expander("🧭 App Info", expanded=True):
 routes = {
     "Dashboard": dashboard,
     "Rental Entry": log_entry,
+    "Log Payment": log_payment,        # ✅ Route Added
     "View Entries": view_entries,
     "Receipts": receipts,
     "Data Export": export,
@@ -61,7 +70,3 @@ routes = {
 }
 
 routes[page].show()
-
-# --- Footer Toast ---
-
-
