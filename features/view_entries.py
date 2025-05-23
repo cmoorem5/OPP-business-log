@@ -102,3 +102,72 @@ def show():
         st.warning(f"{len(skipped)} row(s) skipped due to unreadable rental dates.")
         with st.expander("🔍 View Skipped Rows"):
             st.dataframe(skipped[["Rental Dates"]])
+import matplotlib.pyplot as plt
+
+    with st.expander("📊 Summary Charts", expanded=False):
+        if "Amount" in filtered.columns:
+            filtered["Amount (raw)"] = filtered["Amount"].replace('[\$,]', '', regex=True).astype(float)
+
+            if view_type == "Income":
+                month_key = "Rental Month"
+            else:
+                filtered["Month"] = pd.Categorical(
+                    filtered[date_col].dt.strftime("%B"),
+                    categories=[
+                        "January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December"
+                    ],
+                    ordered=True
+                )
+                month_key = "Month"
+
+            # Bar: Total by Month
+            month_totals = (
+                filtered.groupby(month_key)["Amount (raw)"]
+                .sum()
+                .reindex([
+                    "January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"
+                ])
+                .dropna()
+            )
+
+            fig1, ax1 = plt.subplots()
+            ax1.bar(month_totals.index, month_totals.values)
+            ax1.set_title("Total by Month")
+            ax1.set_ylabel("Amount ($)")
+            for i, v in enumerate(month_totals.values):
+                ax1.text(i, v, f"${v:,.0f}", ha='center', va='bottom')
+            st.pyplot(fig1)
+
+            # Bar: Total by Property
+            prop_totals = (
+                filtered.groupby("Property")["Amount (raw)"]
+                .sum()
+                .sort_values(ascending=False)
+            )
+            fig2, ax2 = plt.subplots()
+            ax2.bar(prop_totals.index, prop_totals.values)
+            ax2.set_title("Total by Property")
+            ax2.set_ylabel("Amount ($)")
+            for i, v in enumerate(prop_totals.values):
+                ax2.text(i, v, f"${v:,.0f}", ha='center', va='bottom')
+            st.pyplot(fig2)
+
+            # Pie: Category Breakdown
+            if "Category" in filtered.columns:
+                cat_totals = (
+                    filtered.groupby("Category")["Amount (raw)"]
+                    .sum()
+                    .sort_values(ascending=False)
+                )
+                fig3, ax3 = plt.subplots()
+                ax3.pie(
+                    cat_totals.values,
+                    labels=cat_totals.index,
+                    autopct=lambda p: f"${p * cat_totals.sum() / 100:,.0f}",
+                    startangle=90
+                )
+                ax3.set_title("Category Breakdown")
+                ax3.axis("equal")
+                st.pyplot(fig3)
