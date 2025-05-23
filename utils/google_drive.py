@@ -21,3 +21,7 @@ def upload_file_to_drive(file_path: str, file_name: str, folder_id: str) -> str:
         body=file_metadata, media_body=media, fields="id"
     ).execute()
     return uploaded_file.get("id")
+def make_clickable_link(url):
+    if isinstance(url, str) and url:
+        return f'<a href="{url}" target="_blank">View Receipt</a>'
+    return ""
