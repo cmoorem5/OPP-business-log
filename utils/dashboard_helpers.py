@@ -46,25 +46,6 @@ def build_financial_summary(df_income, df_expense):
 
     return summary.sort_values(["Property", "Month Num"])
 
-def render_summary_charts(summary):
-    with st.expander("📋 Summary Chart (All Properties)", expanded=True):
-        st.subheader("Total Income, Expenses, and Profit by Month")
-        total = summary.groupby("Month").agg({
-            "Amount Received": "sum",
-            "Amount": "sum",
-            "Profit": "sum",
-            "Month Num": "first"
-        }).reset_index().sort_values("Month Num")
-
-        fig, ax = plt.subplots()
-        ax.bar(total["Month"], total["Amount Received"], label="Income", color="#4CAF50")
-        ax.bar(total["Month"], total["Amount"], label="Expenses", color="#F44336", alpha=0.7)
-        ax.plot(total["Month"], total["Profit"], label="Profit", color="#2196F3", marker="o", linewidth=2)
-        ax.set_ylabel("Amount ($)")
-        ax.set_title("Monthly Financial Overview")
-        ax.legend()
-        st.pyplot(fig)
-
 def render_property_charts(summary):
     properties = sorted(summary["Property"].dropna().unique())
 
@@ -100,7 +81,7 @@ def render_property_charts(summary):
                         f"- **{row['Month']}** — ${row['Due']:.2f} due on ${row['Amount Owed']:.2f} owed"
                     )
 
-        # Clean side-by-side bar chart + profit line
+        # Chart: side-by-side income/expense bars + profit line
         fig, ax = plt.subplots()
         bar_width = 0.35
         x = range(len(filtered_data))
