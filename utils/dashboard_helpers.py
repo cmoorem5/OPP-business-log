@@ -64,12 +64,10 @@ def render_property_charts(summary):
         total_profit = total_income - total_expense
 
         st.markdown(f"### 🏡 {prop}")
-        st.markdown(f"""
-        **Total Income Received:** ${total_income:,.2f}  
-        **Total Income Due:** ${total_due:,.2f}  
-        **Total Expenses:** ${total_expense:,.2f}  
-        **Total Profit:** ${total_profit:,.2f}
-        """)
+        st.markdown(f"<span style='color:#4CAF50'><b>Total Income Received:</b> ${total_income:,.2f}</span>", unsafe_allow_html=True)
+        st.markdown(f"<span style='color:#FF5252'><b>Total Income Due:</b> ${total_due:,.2f}</span>", unsafe_allow_html=True)
+        st.markdown(f"<span style='color:#FB8C00'><b>Total Expenses:</b> ${total_expense:,.2f}</span>", unsafe_allow_html=True)
+        st.markdown(f"<span style='color:#2196F3'><b>Total Profit:</b> ${total_profit:,.2f}</span>", unsafe_allow_html=True)
 
         # Alerts
         overdue_rows = filtered_data[filtered_data["Due"] > 0]
@@ -81,7 +79,7 @@ def render_property_charts(summary):
                         f"- **{row['Month']}** — ${row['Due']:.2f} due on ${row['Amount Owed']:.2f} owed"
                     )
 
-        # Chart: side-by-side income/expense bars + profit line
+        # Chart
         fig, ax = plt.subplots()
         bar_width = 0.35
         x = range(len(filtered_data))
