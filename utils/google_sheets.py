@@ -18,9 +18,6 @@ SPREADSHEET_ID = "1W0sYd7MTTh3Tn8dqUVsG_y0kPBeoWswwgFpdoXmvEy0"
 
 
 def get_gspread_client() -> gspread.Client:
-    """
-    Create a fresh gspread client with refreshed service account credentials.
-    """
     creds_dict = json.loads(st.secrets["gdrive_credentials"])
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
     creds.refresh(Request())
@@ -29,10 +26,6 @@ def get_gspread_client() -> gspread.Client:
 
 @st.cache_data(ttl=300, show_spinner=False)
 def load_sheet_as_df(tab_name: str) -> pd.DataFrame:
-    """
-    Load the worksheet `tab_name` into a pandas DataFrame using the first non-empty row as the header.
-    Cached for 5 minutes.
-    """
     client = get_gspread_client()
     ws = client.open_by_key(SPREADSHEET_ID).worksheet(tab_name)
 
@@ -49,25 +42,16 @@ def load_sheet_as_df(tab_name: str) -> pd.DataFrame:
 
 
 def get_worksheet(tab_name: str) -> gspread.Worksheet:
-    """
-    Return the raw gspread Worksheet object for a given tab.
-    """
     client = get_gspread_client()
     return client.open_by_key(SPREADSHEET_ID).worksheet(tab_name)
 
 
 def append_row(tab_name: str, row_data: list) -> None:
-    """
-    Append a raw list of values as a row to the given worksheet tab.
-    """
     ws = get_worksheet(tab_name)
     ws.append_row(row_data, value_input_option="USER_ENTERED")
 
 
 def append_row_to_sheet(tab_name: str, row_dict: dict) -> None:
-    """
-    Append a dictionary as a row to the worksheet tab, matching the order of header columns.
-    """
     ws = get_worksheet(tab_name)
     headers = ws.row_values(1)
 
@@ -76,3 +60,17 @@ def append_row_to_sheet(tab_name: str, row_dict: dict) -> None:
 
     row = [row_dict.get(col, "") for col in headers]
     ws.append_row(row, value_input_option="USER_ENTERED")
+
+
+def update_row_in_sheet(tab_name: str, row_index: int, updates: dict) -> None:
+    """
+    Update specific columns in a given row (0-based index) of the tab.
+    """
+    ws = get_worksheet(tab_name)
+    headers = ws.row_values(1)
+    row_number = row_index + 2  # 1 for header, 1 for zero-index
+
+    for col, value in updates.items():
+        if col in headers:
+            col_number = headers.index(col) + 1
+            ws.update_cell(row_number, col_number, value)
