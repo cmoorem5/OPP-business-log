@@ -100,14 +100,27 @@ def render_property_charts(summary):
                         f"- **{row['Month']}** — ${row['Due']:.2f} due on ${row['Amount Owed']:.2f} owed"
                     )
 
-        # Plot
+        # Clean side-by-side bar chart + profit line
         fig, ax = plt.subplots()
-        ax.plot(filtered_data["Month"], filtered_data["Amount Received"], label="Income", color="#4CAF50", marker="o")
-        ax.plot(filtered_data["Month"], filtered_data["Amount"], label="Expenses", color="#F44336", marker="o")
-        ax.bar(filtered_data["Month"], filtered_data["Profit"], label="Profit", color="#2196F3", alpha=0.4)
+        bar_width = 0.35
+        x = range(len(filtered_data))
 
-        ax.set_title(f"{prop} – Monthly Financials")
+        ax.bar(x, filtered_data["Amount Received"], width=bar_width, label="Income", color="#4CAF50")
+        ax.bar([i + bar_width for i in x], filtered_data["Amount"], width=bar_width, label="Expenses", color="#F44336")
+
+        ax.plot(
+            [i + bar_width / 2 for i in x],
+            filtered_data["Profit"],
+            label="Profit",
+            color="#2196F3",
+            marker="o",
+            linewidth=2
+        )
+
+        ax.set_xticks([i + bar_width / 2 for i in x])
+        ax.set_xticklabels(filtered_data["Month"], rotation=45)
         ax.set_ylabel("Amount ($)")
+        ax.set_title(f"{prop} – Monthly Financials")
         ax.legend()
         st.pyplot(fig)
         st.markdown("---")
