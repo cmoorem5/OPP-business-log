@@ -10,6 +10,7 @@ def load_dashboard_data():
     expense_sheet = f"{current_year} OPP Expenses"
 
     df_income = load_sheet_as_df(income_sheet)
+    df_income["Amount Owed"] = pd.to_numeric(df_income["Amount Owed"], errors="coerce").fillna(0)
     df_income["Amount Received"] = pd.to_numeric(df_income["Amount Received"], errors="coerce").fillna(0)
     df_income["Month"] = df_income["Month"].str.strip()
     df_income = df_income.dropna(subset=["Month", "Property"])
@@ -28,15 +29,22 @@ def build_financial_summary(df_income, df_expense):
         "September": 9, "October": 10, "November": 11, "December": 12
     }
 
-    income_grouped = df_income.groupby(["Property", "Month"])["Amount Received"].sum().reset_index()
+    income_grouped = df_income.groupby(["Property", "Month"]).agg({
+        "Amount Received": "sum",
+        "Amount Owed": "sum"
+    }).reset_index()
+
     expense_grouped = df_expense.groupby(["Property", "Month"])["Amount"].sum().reset_index()
 
     summary = pd.merge(income_grouped, expense_grouped, how="outer", on=["Property", "Month"])
     summary["Amount Received"] = summary["Amount Received"].fillna(0)
+    summary["Amount Owed"] = summary["Amount Owed"].fillna(0)
     summary["Amount"] = summary["Amount"].fillna(0)
     summary["Profit"] = summary["Amount Received"] - summary["Amount"]
+    summary["Due"] = summary["Amount Owed"] - summary["Amount Received"]
     summary["Month Num"] = summary["Month"].map(month_order)
-    return summary.sort_values("Month Num")
+
+    return summary.sort_values(["Property", "Month Num"])
 
 def render_summary_charts(summary):
     with st.expander("📋 Summary Chart (All Properties)", expanded=True):
@@ -61,14 +69,30 @@ def render_property_charts(summary):
     properties = sorted(summary["Property"].dropna().unique())
 
     for prop in properties:
-        with st.expander(f"🏡 {prop}", expanded=False):
-            prop_data = summary[summary["Property"] == prop]
+        prop_data = summary[summary["Property"] == prop].copy()
 
-            fig, ax = plt.subplots()
-            ax.bar(prop_data["Month"], prop_data["Amount Received"], label="Income", color="#4CAF50")
-            ax.bar(prop_data["Month"], prop_data["Amount"], label="Expenses", color="#F44336", alpha=0.7)
-            ax.plot(prop_data["Month"], prop_data["Profit"], label="Profit", color="#2196F3", marker="o", linewidth=2)
-            ax.set_ylabel("Amount ($)")
-            ax.set_title(f"{prop} - Monthly Breakdown")
-            ax.legend()
-            st.pyplot(fig)
+        # Totals
+        total_income = prop_data["Amount Received"].sum()
+        total_expense = prop_data["Amount"].sum()
+        total_due = prop_data["Due"].sum()
+        total_profit = total_income - total_expense
+
+        st.markdown(f"### 🏡 {prop}")
+        st.markdown(f"""
+        **Total Income Received:** ${total_income:,.2f}  
+        **Total Income Due:** ${total_due:,.2f}  
+        **Total Expenses:** ${total_expense:,.2f}  
+        **Total Profit:** ${total_profit:,.2f}
+        """)
+
+        # Plot
+        fig, ax = plt.subplots()
+        ax.plot(prop_data["Month"], prop_data["Amount Received"], label="Income", color="#4CAF50", marker="o")
+        ax.plot(prop_data["Month"], prop_data["Amount"], label="Expenses", color="#F44336", marker="o")
+        ax.bar(prop_data["Month"], prop_data["Profit"], label="Profit", color="#2196F3", alpha=0.4)
+
+        ax.set_title(f"{prop} – Monthly Financials")
+        ax.set_ylabel("Amount ($)")
+        ax.legend()
+        st.pyplot(fig)
+        st.markdown("---")
