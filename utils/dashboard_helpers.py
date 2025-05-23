@@ -70,11 +70,16 @@ def render_property_charts(summary):
 
     for prop in properties:
         prop_data = summary[summary["Property"] == prop].copy()
+        available_months = list(prop_data["Month"].unique())
+        selected_months = st.multiselect(
+            f"📅 Filter months for {prop}", options=available_months, default=available_months
+        )
+        filtered_data = prop_data[prop_data["Month"].isin(selected_months)]
 
         # Totals
-        total_income = prop_data["Amount Received"].sum()
-        total_expense = prop_data["Amount"].sum()
-        total_due = prop_data["Due"].sum()
+        total_income = filtered_data["Amount Received"].sum()
+        total_expense = filtered_data["Amount"].sum()
+        total_due = filtered_data["Due"].sum()
         total_profit = total_income - total_expense
 
         st.markdown(f"### 🏡 {prop}")
@@ -85,11 +90,21 @@ def render_property_charts(summary):
         **Total Profit:** ${total_profit:,.2f}
         """)
 
+        # Alerts
+        overdue_rows = filtered_data[filtered_data["Due"] > 0]
+        if not overdue_rows.empty:
+            with st.expander("🔴 Overdue Bookings", expanded=True):
+                st.error(f"{len(overdue_rows)} month(s) with outstanding balances.")
+                for _, row in overdue_rows.iterrows():
+                    st.markdown(
+                        f"- **{row['Month']}** — ${row['Due']:.2f} due on ${row['Amount Owed']:.2f} owed"
+                    )
+
         # Plot
         fig, ax = plt.subplots()
-        ax.plot(prop_data["Month"], prop_data["Amount Received"], label="Income", color="#4CAF50", marker="o")
-        ax.plot(prop_data["Month"], prop_data["Amount"], label="Expenses", color="#F44336", marker="o")
-        ax.bar(prop_data["Month"], prop_data["Profit"], label="Profit", color="#2196F3", alpha=0.4)
+        ax.plot(filtered_data["Month"], filtered_data["Amount Received"], label="Income", color="#4CAF50", marker="o")
+        ax.plot(filtered_data["Month"], filtered_data["Amount"], label="Expenses", color="#F44336", marker="o")
+        ax.bar(filtered_data["Month"], filtered_data["Profit"], label="Profit", color="#2196F3", alpha=0.4)
 
         ax.set_title(f"{prop} – Monthly Financials")
         ax.set_ylabel("Amount ($)")
