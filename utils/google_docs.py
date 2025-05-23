@@ -1,3 +1,4 @@
+import json
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 import streamlit as st
@@ -7,20 +8,19 @@ SCOPES = [
     "https://www.googleapis.com/auth/documents"
 ]
 
-# Authenticate with service account using Streamlit secrets
+def _get_credentials():
+    creds_raw = st.secrets["gdrive_credentials"]
+    creds_dict = json.loads(creds_raw) if isinstance(creds_raw, str) else creds_raw
+    return service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+
 def _get_docs_service():
-    creds = service_account.Credentials.from_service_account_info(
-        st.secrets["gdrive_credentials"], scopes=SCOPES
-    )
+    creds = _get_credentials()
     return build("docs", "v1", credentials=creds)
 
 def _get_drive_service():
-    creds = service_account.Credentials.from_service_account_info(
-        st.secrets["gdrive_credentials"], scopes=SCOPES
-    )
+    creds = _get_credentials()
     return build("drive", "v3", credentials=creds)
 
-# Main doc generation function
 def generate_rental_agreement_doc(
     renter_name: str,
     start_date: str,
@@ -32,12 +32,11 @@ def generate_rental_agreement_doc(
     email: str,
     output_folder_id: str
 ) -> str:
-    template_id = "1HIE5iVfK6gMHUfb9gprb5TLcCB-4R3WkLMk2UFr1fCo"  # Short-Term Rental Agreement in shared folder
+    template_id = "1HIE5iVfK6gMHUfb9gprb5TLcCB-4R3WkLMk2UFr1fCo"  # Short-Term Rental Agreement
 
     drive_service = _get_drive_service()
     docs_service = _get_docs_service()
 
-    # Copy template to new doc
     title = f"{renter_name} Rental Agreement - {start_date}"
     copy = drive_service.files().copy(
         fileId=template_id,
@@ -45,7 +44,6 @@ def generate_rental_agreement_doc(
     ).execute()
     new_doc_id = copy["id"]
 
-    # Replace placeholders
     requests = [
         {"replaceAllText": {"containsText": {"text": "{{Renter Name}}", "matchCase": True}, "replaceText": renter_name}},
         {"replaceAllText": {"containsText": {"text": "{{Start Date}}", "matchCase": True}, "replaceText": start_date}},
