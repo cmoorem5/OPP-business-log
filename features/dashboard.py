@@ -1,61 +1,79 @@
 import streamlit as st
 import pandas as pd
-from utils.google_sheets import load_sheet_as_df
 import matplotlib.pyplot as plt
 from datetime import datetime
+from utils.google_sheets import load_sheet_as_df
 
 def show():
     st.title("📊 Finance Dashboard")
 
-    # Default to current year
+    # Current year logic
     current_year = str(datetime.now().year)
     income_sheet = f"{current_year} OPP Income"
     expense_sheet = f"{current_year} OPP Expenses"
 
-    # Load data
+    # Load and clean income
     df_income = load_sheet_as_df(income_sheet)
-    df_expense = load_sheet_as_df(expense_sheet)
-
-    # Clean up numeric fields
-    df_income["Amount Owed"] = pd.to_numeric(df_income["Amount Owed"], errors="coerce").fillna(0)
     df_income["Amount Received"] = pd.to_numeric(df_income["Amount Received"], errors="coerce").fillna(0)
-    df_income["Balance"] = pd.to_numeric(df_income["Balance"], errors="coerce").fillna(0)
+    df_income["Month"] = df_income["Month"].str.strip()
+    df_income = df_income.dropna(subset=["Month", "Property"])
 
+    # Load and clean expenses
+    df_expense = load_sheet_as_df(expense_sheet)
     df_expense["Amount"] = pd.to_numeric(df_expense["Amount"], errors="coerce").fillna(0)
+    df_expense["Month"] = df_expense["Month"].str.strip()
+    df_expense = df_expense.dropna(subset=["Month", "Property"])
 
-    # Month sort logic
+    # Month sort helper
     month_order = {
         "January": 1, "February": 2, "March": 3, "April": 4,
         "May": 5, "June": 6, "July": 7, "August": 8,
         "September": 9, "October": 10, "November": 11, "December": 12
     }
 
-    if "Month" in df_income.columns:
-        df_income["Month Num"] = df_income["Month"].map(month_order)
-        df_income = df_income.sort_values("Month Num").drop(columns="Month Num")
+    # Group summaries
+    income_grouped = df_income.groupby(["Property", "Month"])["Amount Received"].sum().reset_index()
+    expense_grouped = df_expense.groupby(["Property", "Month"])["Amount"].sum().reset_index()
 
-    if "Month" in df_expense.columns:
-        df_expense["Month Num"] = df_expense["Month"].map(month_order)
-        df_expense = df_expense.sort_values("Month Num").drop(columns="Month Num")
+    # Merge for profit calculation
+    summary = pd.merge(income_grouped, expense_grouped, how="outer", on=["Property", "Month"])
+    summary["Amount Received"] = summary["Amount Received"].fillna(0)
+    summary["Amount"] = summary["Amount"].fillna(0)
+    summary["Profit"] = summary["Amount Received"] - summary["Amount"]
+    summary["Month Num"] = summary["Month"].map(month_order)
+    summary = summary.sort_values("Month Num")
 
-    # Summary
-    income_summary = df_income.groupby("Month")["Amount Received"].sum()
-    expense_summary = df_expense.groupby("Month")["Amount"].sum()
+    # Combined Summary Chart
+    with st.expander("📋 Summary Chart (All Properties)", expanded=True):
+        st.subheader("Total Income, Expenses, and Profit by Month")
+        total = summary.groupby("Month").agg({
+            "Amount Received": "sum",
+            "Amount": "sum",
+            "Profit": "sum",
+            "Month Num": "first"
+        }).reset_index().sort_values("Month Num")
 
-    # Plot income
-    with st.expander("📈 Income Overview", expanded=True):
-        st.subheader("Total Income by Month")
         fig, ax = plt.subplots()
-        income_summary.plot(kind="bar", ax=ax)
+        ax.bar(total["Month"], total["Amount Received"], label="Income", color="#4CAF50")
+        ax.bar(total["Month"], total["Amount"], label="Expenses", color="#F44336", alpha=0.7)
+        ax.plot(total["Month"], total["Profit"], label="Profit", color="#2196F3", marker="o", linewidth=2)
         ax.set_ylabel("Amount ($)")
-        ax.set_xlabel("Month")
+        ax.set_title("Monthly Financial Overview")
+        ax.legend()
         st.pyplot(fig)
 
-    # Plot expenses
-    with st.expander("💸 Expense Overview", expanded=True):
-        st.subheader("Total Expenses by Month")
-        fig2, ax2 = plt.subplots()
-        expense_summary.plot(kind="bar", color="orange", ax=ax2)
-        ax2.set_ylabel("Amount ($)")
-        ax2.set_xlabel("Month")
-        st.pyplot(fig2)
+    # Per-property breakdown
+    properties = sorted(summary["Property"].dropna().unique())
+
+    for prop in properties:
+        with st.expander(f"🏡 {prop}", expanded=False):
+            prop_data = summary[summary["Property"] == prop]
+
+            fig, ax = plt.subplots()
+            ax.bar(prop_data["Month"], prop_data["Amount Received"], label="Income", color="#4CAF50")
+            ax.bar(prop_data["Month"], prop_data["Amount"], label="Expenses", color="#F44336", alpha=0.7)
+            ax.plot(prop_data["Month"], prop_data["Profit"], label="Profit", color="#2196F3", marker="o", linewidth=2)
+            ax.set_ylabel("Amount ($)")
+            ax.set_title(f"{prop} - Monthly Breakdown")
+            ax.legend()
+            st.pyplot(fig)
