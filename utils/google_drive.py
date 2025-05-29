@@ -12,11 +12,11 @@ def _get_drive_service():
     creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
     return build("drive", "v3", credentials=creds)
 
-def upload_file_to_drive(uploaded_file, folder_id):
+def upload_file_to_drive(uploaded_file, folder_id, filename):
     service = _get_drive_service()
     media = MediaIoBaseUpload(uploaded_file, mimetype="application/pdf")
     file_metadata = {
-        "name": uploaded_file.name,
+        "name": filename,
         "parents": [folder_id]
     }
     file = service.files().create(
