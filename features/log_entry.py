@@ -49,7 +49,7 @@ def show():
             sheet_name = f"{year} OPP Expenses"
 
             expense_date = st.date_input("Date", date.today())
-            property_name = st.selectbox("Property", ["Hooked on Islamorada", "Other"])
+            property_name = st.selectbox("Property", ["Florida", "Maine"])
             category = st.selectbox("Category", ["Mortgage", "Cable/Internet", "Electric", "Repairs", "Supplies", "Other"])
             description = st.text_input("Item/Description")
             amount = st.number_input("Amount", min_value=0.0, step=5.0)
