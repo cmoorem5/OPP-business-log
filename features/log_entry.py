@@ -58,7 +58,7 @@ def show():
             sheet_name = f"{year} OPP Expenses"
 
             expense_date = st.date_input("Expense Date", date.today())
-            month = expense_date.strftime("%B")  # Used for Drive folder & row
+            month = expense_date.strftime("%B")
 
             purchaser = st.selectbox("Purchaser", [
                 "Cash", "Debit C6270", "JB C6443B", "JB J5062B", "JB C1112",
@@ -82,7 +82,7 @@ def show():
 
                 if receipt_file:
                     try:
-                        folder_id = get_drive_folder_id(month)  # ✅ Fixed for your setup
+                        folder_id = get_drive_folder_id(expense_date)  # ✅ Correct: pass full date
                         drive_url = upload_file_to_drive(receipt_file, folder_id)
                     except Exception as e:
                         st.error(f"❌ Upload failed: {e}")
