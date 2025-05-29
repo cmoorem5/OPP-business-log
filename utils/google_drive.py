@@ -1,27 +1,30 @@
-import os
-import json
-import streamlit as st
-from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaIoBaseUpload
+from google.oauth2 import service_account
+import io
+import streamlit as st
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
-@st.cache_resource(show_spinner=False)
-def get_drive_service():
-    creds_dict = json.loads(st.secrets["gdrive_credentials"])
-    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+def _get_drive_service():
+    creds_raw = st.secrets["gdrive_credentials"]
+    creds_dict = dict(creds_raw)
+    creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
     return build("drive", "v3", credentials=creds)
 
-def upload_file_to_drive(file_path: str, file_name: str, folder_id: str) -> str:
-    service = get_drive_service()
-    file_metadata = {"name": file_name, "parents": [folder_id]}
-    media = MediaFileUpload(file_path, resumable=True)
-    uploaded_file = service.files().create(
-        body=file_metadata, media_body=media, fields="id"
+def upload_file_to_drive(uploaded_file, folder_id):
+    service = _get_drive_service()
+    media = MediaIoBaseUpload(uploaded_file, mimetype="application/pdf")
+    file_metadata = {
+        "name": uploaded_file.name,
+        "parents": [folder_id]
+    }
+    file = service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields="id"
     ).execute()
-    return uploaded_file.get("id")
-def make_clickable_link(url):
-    if isinstance(url, str) and url:
-        return f'<a href="{url}" target="_blank">View Receipt</a>'
-    return ""
+    return file.get("id")
+
+def generate_drive_link(file_id):
+    return f"https://drive.google.com/file/d/{file_id}/view"
