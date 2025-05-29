@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from utils.google_sheets import load_sheet_as_df, append_row_to_sheet
-from utils.drive_utils import generate_drive_link
+from utils.google_drive import upload_file_to_drive, generate_drive_link
 
 def show():
     st.header("🧾 Renter Activity")
@@ -22,10 +22,17 @@ def show():
         start_date = st.date_input("Rental Start Date")
         end_date = st.date_input("Rental End Date")
         payment_status = st.selectbox("Payment Status", ["Paid", "PMT due", "Downpayment received"])
+        rental_agreement = st.file_uploader("Upload Rental Agreement (PDF)", type=["pdf"])
         notes = st.text_area("Additional Notes (optional)")
         submitted = st.form_submit_button("Submit")
 
     if submitted:
+        drive_url = ""
+        if rental_agreement:
+            folder_id = st.secrets["rental_agreements_folder_id"]
+            uploaded_id = upload_file_to_drive(rental_agreement, folder_id)
+            drive_url = generate_drive_link(uploaded_id)
+
         new_entry = {
             "Date Submitted": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "Renter Name": renter_name,
@@ -36,6 +43,7 @@ def show():
             "Rental Start": start_date.strftime("%Y-%m-%d"),
             "Rental End": end_date.strftime("%Y-%m-%d"),
             "Complete": payment_status,
+            "Rental Agreement": drive_url,
             "Notes": notes
         }
 
