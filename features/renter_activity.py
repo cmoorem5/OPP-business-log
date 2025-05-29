@@ -18,8 +18,8 @@ def show():
 
     df["Check-in"] = pd.to_datetime(df["Check-in"], errors="coerce")
     df_filtered = df.dropna(subset=["Name", "Check-in"]).copy()
-
     df_filtered["Renter ID"] = df_filtered["Name"] + " | " + df_filtered["Check-in"].dt.strftime("%Y-%m-%d")
+
     renter_id_list = df_filtered["Renter ID"].tolist()
     selected_id = st.selectbox("Select renter to update", renter_id_list)
 
@@ -32,7 +32,8 @@ def show():
             phone = st.text_input("Phone", value=selected.get("Phone", ""))
             amount_owed = st.number_input("Amount Owed", min_value=0.0, step=10.0, value=float(selected.get("Amount Owed", 0)))
             amount_received = st.number_input("Amount Received", min_value=0.0, step=10.0, value=float(selected.get("Amount Received", 0)))
-            status = st.selectbox("Status", ["Paid", "PMT Due", "Downpayment Received"], index=["Paid", "PMT Due", "Downpayment Received"].index(selected.get("Status", "PMT Due")))
+            status = st.selectbox("Status", ["Paid", "PMT Due", "Downpayment Received"], 
+                                  index=["Paid", "PMT Due", "Downpayment Received"].index(selected.get("Status", "PMT Due")))
             notes = st.text_area("Notes", value=selected.get("Notes", ""))
             submitted = st.form_submit_button("Update Renter Info")
 
