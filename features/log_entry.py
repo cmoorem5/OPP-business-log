@@ -80,7 +80,7 @@ def show():
                 drive_url = ""
 
                 if receipt_file:
-                    folder_id = get_drive_folder_id(year, expense_date)
+                    folder_id = get_drive_folder_id(year, month)
                     drive_url = upload_file_to_drive(receipt_file, folder_id)
 
                 row = [
