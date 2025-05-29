@@ -91,7 +91,8 @@ def show():
                     try:
                         folder_id = get_drive_folder_id(expense_date)
                         clean_filename = sanitize_filename(receipt_file.name)
-                        drive_url = upload_file_to_drive(receipt_file, clean_filename, folder_id)
+                        file_data = receipt_file.getbuffer()
+                        drive_url = upload_file_to_drive(file_data, clean_filename, folder_id)
                     except Exception as e:
                         st.error(f"❌ Upload failed: {e}")
                         return
