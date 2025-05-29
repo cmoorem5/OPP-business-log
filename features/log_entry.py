@@ -5,12 +5,9 @@ from utils.google_sheets import append_row_to_sheet
 from utils.google_drive import upload_file_to_drive
 from utils.config import get_drive_folder_id
 
-
 def sanitize_filename(filename: str) -> str:
-    """Sanitize filename to be safe for Google Drive."""
     name = filename.strip().lower().replace(" ", "_")
     return re.sub(r"[^a-zA-Z0-9_.-]", "", name)
-
 
 def show():
     st.title("📝 Log New Entry")
@@ -36,12 +33,17 @@ def show():
             notes = st.text_area("Notes (optional)")
 
             if st.form_submit_button("Log Income"):
-                row = [
+                headers = [
+                    "Month", "Date", "Purchaser", "Item", "Property", "Category",
+                    "Amount", "Comments", "Receipt Link", "Email", "Origin",
+                    "Check-in", "Check-out", "Payment Status", "Paid", "Total", "Balance"
+                ]
+                values = [
                     booking_date.strftime("%B"),
                     booking_date.strftime("%Y-%m-%d"),
                     renter_name,
                     f"Rental {check_in} to {check_out}",
-                    "Islamorada",  # Static property
+                    "Islamorada",
                     payment_type,
                     amount,
                     notes,
@@ -55,7 +57,8 @@ def show():
                     amount,
                     0.0
                 ]
-                append_row_to_sheet(sheet_name, row)
+                row_dict = dict(zip(headers, values))
+                append_row_to_sheet(sheet_name, row_dict)
                 st.success("✅ Income logged successfully.")
 
     # --- EXPENSE ENTRY ---
@@ -72,7 +75,6 @@ def show():
                 "JB J0186", "JB J7698", "Jordans", "OPP Checking",
                 "OPP JetBlue", "Return", "TJ MAXX Card"
             ])
-
             item = st.text_input("Item/Description")
             property_selected = st.selectbox("Property", ["Islamorada", "Standish", "Other"])
             category = st.selectbox("Category", [
@@ -91,12 +93,17 @@ def show():
                     try:
                         folder_id = get_drive_folder_id(expense_date)
                         clean_filename = sanitize_filename(receipt_file.name)
-                        drive_url = upload_file_to_drive(receipt_file, clean_filename, folder_id)
+                        file_id = upload_file_to_drive(receipt_file, clean_filename, folder_id)
+                        drive_url = f"https://drive.google.com/file/d/{file_id}/view"
                     except Exception as e:
                         st.error(f"❌ Upload failed: {e}")
                         return
 
-                row = [
+                headers = [
+                    "Month", "Date", "Purchaser", "Item", "Property",
+                    "Category", "Amount", "Comments", "Receipt Link"
+                ]
+                values = [
                     month,
                     expense_date.strftime("%Y-%m-%d"),
                     purchaser,
@@ -107,6 +114,6 @@ def show():
                     comments,
                     drive_url
                 ]
-                append_row_to_sheet(sheet_name, row)
+                row_dict = dict(zip(headers, values))
+                append_row_to_sheet(sheet_name, row_dict)
                 st.success("✅ Expense logged successfully.")
-
