@@ -61,7 +61,15 @@ def show():
         amount_owed = st.number_input("Amount Owed", min_value=0.0, step=10.0, value=float(selected_row.get("Amount Owed", 0)))
         amount_received = st.number_input("Amount Received", min_value=0.0, step=10.0, value=float(selected_row.get("Amount Received", 0)))
         balance = amount_owed - amount_received
-        status = st.selectbox("Status", ["Paid", "PMT due", "Downpayment received"], index=["Paid", "PMT due", "Downpayment received"].index(selected_row.get("Status", "PMT due")))
+
+        status_options = ["Paid", "PMT due", "Downpayment received"]
+        current_status = selected_row.get("Status", "PMT due")
+        status_index = status_options.index(current_status) if current_status in status_options else 1
+        status = st.selectbox("Status", status_options, index=status_index)
+
+        if balance <= 0:
+            status = "Paid"
+
         notes = st.text_area("Notes", value=selected_row.get("Notes", ""))
         submitted = st.form_submit_button("Update Renter Info")
 
