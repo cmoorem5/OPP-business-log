@@ -19,33 +19,51 @@ def show():
     sheet_name = f"{year} OPP Income"
     df = load_sheet_as_df(sheet_name)
 
-    st.subheader("Select Renter to Edit")
-
     if "Rental Dates" not in df.columns or "Name" not in df.columns:
         st.error("Missing 'Rental Dates' or 'Name' column in the sheet.")
         return
 
+    # Normalize dates and amounts
     df["Start Date"] = df["Rental Dates"].apply(extract_start_date)
     df["Start Date"] = pd.to_datetime(df["Start Date"], errors="coerce")
-    today = pd.Timestamp.today()
+    df["Amount Owed"] = pd.to_numeric(df.get("Amount Owed", 0), errors="coerce").fillna(0.0)
+    df["Amount Received"] = pd.to_numeric(df.get("Amount Received", 0), errors="coerce").fillna(0.0)
+    df["Balance"] = df["Amount Owed"] - df["Amount Received"]
 
-    df = df[df["Start Date"].notna()]
-    active_df = df[
-        (df["Start Date"] >= today) &
-        (df["Name"].notna())
+    # Filter to rows with valid renters
+    df = df[
+        (df["Name"].notna()) &
+        (df["Rental Dates"].notna())
     ].copy()
 
-    if active_df.empty:
-        st.info("No active or upcoming renters to edit.")
+    df["Property"] = df.get("Property", "Unspecified")
+    df["Status"] = df.get("Status", "PMT due").fillna("PMT due")
+
+    # Filter UI
+    st.subheader("Filter Renters")
+    all_properties = sorted(df["Property"].dropna().unique())
+    selected_properties = st.multiselect("Filter by Property", all_properties, default=all_properties)
+
+    all_statuses = ["Paid", "PMT due", "Downpayment received"]
+    selected_statuses = st.multiselect("Filter by Status", all_statuses, default=all_statuses)
+
+    filtered_df = df[
+        (df["Property"].isin(selected_properties)) &
+        (df["Status"].isin(selected_statuses))
+    ].copy()
+
+    if filtered_df.empty:
+        st.info("No renters match the selected filters.")
         return
 
-    active_df["Label"] = active_df.apply(
-        lambda row: f"{row['Name']} — {row['Property']} ({row['Rental Dates']})",
+    # Dropdown label
+    filtered_df["Label"] = filtered_df.apply(
+        lambda row: f"{row['Name']} — {row['Property']} ({row['Rental Dates']}) — Balance: ${row['Balance']:,.2f}",
         axis=1
     )
 
-    selected_label = st.selectbox("Choose Renter", active_df["Label"])
-    selected_row = active_df[active_df["Label"] == selected_label].iloc[0]
+    selected_label = st.selectbox("Choose Renter to Edit", filtered_df["Label"])
+    selected_row = filtered_df[filtered_df["Label"] == selected_label].iloc[0]
     selected_index = selected_row.name
 
     st.subheader("Edit Renter Info")
@@ -58,8 +76,8 @@ def show():
         city = st.text_input("City", value=selected_row.get("City", ""))
         state = st.text_input("State", value=selected_row.get("State", ""))
         zip_code = st.text_input("Zip", value=selected_row.get("Zip", ""))
-        amount_owed = st.number_input("Amount Owed", min_value=0.0, step=10.0, value=float(selected_row.get("Amount Owed", 0)))
-        amount_received = st.number_input("Amount Received", min_value=0.0, step=10.0, value=float(selected_row.get("Amount Received", 0)))
+        amount_owed = st.number_input("Amount Owed", min_value=0.0, step=10.0, value=float(selected_row["Amount Owed"]))
+        amount_received = st.number_input("Amount Received", min_value=0.0, step=10.0, value=float(selected_row["Amount Received"]))
         balance = amount_owed - amount_received
 
         status_options = ["Paid", "PMT due", "Downpayment received"]
