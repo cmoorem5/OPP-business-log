@@ -1,8 +1,15 @@
 import streamlit as st
 from datetime import date
+import re
 from utils.google_sheets import append_row_to_sheet
 from utils.google_drive import upload_file_to_drive
 from utils.config import get_drive_folder_id
+
+
+def sanitize_filename(filename: str) -> str:
+    """Sanitize filename to be safe for Google Drive."""
+    name = filename.strip().lower().replace(" ", "_")
+    return re.sub(r"[^a-zA-Z0-9_.-]", "", name)
 
 
 def show():
@@ -82,8 +89,9 @@ def show():
 
                 if receipt_file:
                     try:
-                        folder_id = get_drive_folder_id(expense_date)  # ✅ Correct: pass full date
-                        drive_url = upload_file_to_drive(receipt_file, folder_id)
+                        folder_id = get_drive_folder_id(expense_date)
+                        clean_filename = sanitize_filename(receipt_file.name)
+                        drive_url = upload_file_to_drive(receipt_file, clean_filename, folder_id)
                     except Exception as e:
                         st.error(f"❌ Upload failed: {e}")
                         return
