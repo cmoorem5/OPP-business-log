@@ -9,6 +9,7 @@ def show():
     st.title("📝 Log New Entry")
     entry_type = st.selectbox("Select Entry Type", ["Income", "Expense"])
 
+    # --- INCOME ENTRY ---
     if entry_type == "Income":
         with st.form("income_form", clear_on_submit=True):
             year = st.selectbox("Log Income To:", ["2025", "2026"], key="income_year")
@@ -21,35 +22,36 @@ def show():
             amount = st.number_input("Amount Received", min_value=0.0, step=10.0)
             payment_type = st.selectbox("Payment Type", ["Zelle", "Check", "Cash", "Venmo", "Other"])
             status = st.selectbox("Payment Status", ["Paid", "PMT due", "Downpayment received"])
+
             renter_name = st.text_input("Renter Name")
             email = st.text_input("Renter Email")
             origin = st.text_input("Where are they from?")
             notes = st.text_area("Notes (optional)")
 
-            submitted = st.form_submit_button("Log Income")
-            if submitted:
+            if st.form_submit_button("Log Income"):
                 row = [
                     booking_date.strftime("%B"),
                     booking_date.strftime("%Y-%m-%d"),
                     renter_name,
                     f"Rental {check_in} to {check_out}",
-                    "Islamorada",  # Hardcoded for now
+                    "Islamorada",  # Hardcoded property
                     payment_type,
                     amount,
                     notes,
-                    "",  # Receipt Link placeholder
+                    "",  # Receipt Link placeholder (not used here)
                     email,
                     origin,
                     check_in.strftime("%Y-%m-%d"),
                     check_out.strftime("%Y-%m-%d"),
                     status,
-                    amount,  # Amount Owed = Amount
-                    amount,  # Amount Received = Amount
-                    0.0      # Balance = 0
+                    amount,  # Amount Owed
+                    amount,  # Amount Received
+                    0.0      # Balance
                 ]
                 append_row_to_sheet(sheet_name, row)
                 st.success("✅ Income logged successfully.")
 
+    # --- EXPENSE ENTRY ---
     elif entry_type == "Expense":
         with st.form("expense_form", clear_on_submit=True):
             year = st.selectbox("Log Expense To:", ["2025", "2026"], key="expense_year")
@@ -74,13 +76,12 @@ def show():
             comments = st.text_area("Comments (optional)")
             receipt_file = st.file_uploader("Upload Receipt", type=["jpg", "jpeg", "png", "pdf"])
 
-            submitted = st.form_submit_button("Log Expense")
-            if submitted:
+            if st.form_submit_button("Log Expense"):
                 month = expense_date.strftime("%B")
                 drive_url = ""
 
                 if receipt_file:
-                    folder_id = get_drive_folder_id(year, month)
+                    folder_id = get_drive_folder_id(year, expense_date)
                     drive_url = upload_file_to_drive(receipt_file, folder_id)
 
                 row = [
