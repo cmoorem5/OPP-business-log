@@ -65,7 +65,11 @@ def show():
 
             item = st.text_input("Item/Description")
             property_selected = st.selectbox("Property", ["Islamorada", "Standish", "Other"])
-            category = st.selectbox("Category", ["Utilities", "Supplies", "Maintenance", "Mortgage", "Cable", "Other"])
+            category = st.selectbox("Category", [
+                "Property Expense", "Furnishings & Supplies", "Guest & Operational Expenses",
+                "Travel & Transportation", "Legal & Professional Services", "Food & Beverage",
+                "Taxes & Compliance", "Business Expansion & Improvements", "Misc & Other"
+            ])
             amount = st.number_input("Amount", min_value=0.0, step=10.0)
             comments = st.text_area("Comments (optional)")
             receipt_file = st.file_uploader("Upload Receipt", type=["jpg", "jpeg", "png", "pdf"])
@@ -92,4 +96,3 @@ def show():
                 ]
                 append_row_to_sheet(sheet_name, row)
                 st.success("✅ Expense logged successfully.")
-
