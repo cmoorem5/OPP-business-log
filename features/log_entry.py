@@ -56,7 +56,13 @@ def show():
             sheet_name = f"{year} OPP Expenses"
 
             expense_date = st.date_input("Expense Date", date.today())
-            purchaser = st.text_input("Purchaser")
+
+            purchaser = st.selectbox("Purchaser", [
+                "Cash", "Debit C6270", "JB C6443B", "JB J5062B", "JB C1112",
+                "JB J0186", "JB J7698", "Jordans", "OPP Checking",
+                "OPP JetBlue", "Return", "TJ MAXX Card"
+            ])
+
             item = st.text_input("Item/Description")
             property_selected = st.selectbox("Property", ["Islamorada", "Standish", "Other"])
             category = st.selectbox("Category", ["Utilities", "Supplies", "Maintenance", "Mortgage", "Cable", "Other"])
@@ -86,3 +92,4 @@ def show():
                 ]
                 append_row_to_sheet(sheet_name, row)
                 st.success("✅ Expense logged successfully.")
+
