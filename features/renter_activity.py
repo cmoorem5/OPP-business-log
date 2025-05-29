@@ -29,8 +29,13 @@ def show():
     if submitted:
         drive_url = ""
         if rental_agreement:
-            folder_id = st.secrets["rental_agreements_folder_id"]
-            uploaded_id = upload_file_to_drive(rental_agreement, folder_id)
+            rental_month = start_date.strftime("%B")
+            rental_year = start_date.strftime("%Y")
+            folder_key = f"rental_agreements_{rental_year}_folder_id"
+            folder_id = st.secrets.get(folder_key, st.secrets["rental_agreements_folder_id"])
+            safe_name = renter_name.replace(" ", "_").replace(",", "")
+            new_filename = f"{safe_name}_{rental_month}_{rental_year}.pdf"
+            uploaded_id = upload_file_to_drive(rental_agreement, folder_id, new_filename)
             drive_url = generate_drive_link(uploaded_id)
 
         new_entry = {
