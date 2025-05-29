@@ -2,6 +2,15 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from utils.google_sheets import load_sheet_as_df, update_row_in_sheet
+import re
+
+def extract_start_date(rental_str):
+    if not isinstance(rental_str, str):
+        return pd.NaT
+    match = re.search(r"\d{1,2}/\d{1,2}/\d{4}", rental_str)
+    if match:
+        return pd.to_datetime(match.group(0), errors="coerce")
+    return pd.NaT
 
 def show():
     st.header("🧾 Renter Activity")
@@ -12,20 +21,18 @@ def show():
 
     st.subheader("Select Renter to Edit")
 
-    # DEBUG: show columns in case of mismatch
-    st.write("Columns found:", df.columns.tolist())
-
-    if "Rental Start" not in df.columns or "Rental End" not in df.columns:
-        st.error("Missing 'Rental Start' or 'Rental End' column in the sheet.")
+    if "Rental Dates" not in df.columns or "Name" not in df.columns:
+        st.error("Missing 'Rental Dates' or 'Name' column in the sheet.")
         return
 
-    df["Rental Start"] = pd.to_datetime(df["Rental Start"], errors="coerce")
-    df["Rental End"] = pd.to_datetime(df["Rental End"], errors="coerce")
+    df["Start Date"] = df["Rental Dates"].apply(extract_start_date)
+    df["Start Date"] = pd.to_datetime(df["Start Date"], errors="coerce")
     today = pd.Timestamp.today()
 
+    df = df[df["Start Date"].notna()]
     active_df = df[
-        (df["Rental End"] >= today) &
-        (df["Renter Name"].notna())
+        (df["Start Date"] >= today) &
+        (df["Name"].notna())
     ].copy()
 
     if active_df.empty:
@@ -33,34 +40,45 @@ def show():
         return
 
     active_df["Label"] = active_df.apply(
-        lambda row: f"{row['Renter Name']} — {row['Property']} ({row['Rental Start'].strftime('%b %d')} to {row['Rental End'].strftime('%b %d')})",
+        lambda row: f"{row['Name']} — {row['Property']} ({row['Rental Dates']})",
         axis=1
     )
 
     selected_label = st.selectbox("Choose Renter", active_df["Label"])
     selected_row = active_df[active_df["Label"] == selected_label].iloc[0]
-    selected_index = selected_row.name  # original index for update
+    selected_index = selected_row.name
 
     st.subheader("Edit Renter Info")
 
     with st.form("edit_renter_form"):
-        renter_name = st.text_input("Renter Name", value=selected_row["Renter Name"])
-        email = st.text_input("Email Address", value=selected_row.get("Email", ""))
-        origin = st.text_input("Location (City, State)", value=selected_row.get("Location", ""))
-        amount = st.number_input("Payment Amount", min_value=0.0, step=10.0, value=float(selected_row["Amount"]))
-        payment_status = st.selectbox("Payment Status", ["Paid", "PMT due", "Downpayment received"],
-                                      index=["Paid", "PMT due", "Downpayment received"].index(selected_row["Complete"]))
+        name = st.text_input("Name", value=selected_row["Name"])
+        email = st.text_input("Email", value=selected_row.get("Email", ""))
+        phone = st.text_input("Phone", value=selected_row.get("Phone", ""))
+        address = st.text_input("Address", value=selected_row.get("Address", ""))
+        city = st.text_input("City", value=selected_row.get("City", ""))
+        state = st.text_input("State", value=selected_row.get("State", ""))
+        zip_code = st.text_input("Zip", value=selected_row.get("Zip", ""))
+        amount_owed = st.number_input("Amount Owed", min_value=0.0, step=10.0, value=float(selected_row.get("Amount Owed", 0)))
+        amount_received = st.number_input("Amount Received", min_value=0.0, step=10.0, value=float(selected_row.get("Amount Received", 0)))
+        balance = amount_owed - amount_received
+        status = st.selectbox("Status", ["Paid", "PMT due", "Downpayment received"], index=["Paid", "PMT due", "Downpayment received"].index(selected_row.get("Status", "PMT due")))
         notes = st.text_area("Notes", value=selected_row.get("Notes", ""))
         submitted = st.form_submit_button("Update Renter Info")
 
     if submitted:
         updated_data = {
-            "Renter Name": renter_name,
+            "Name": name,
             "Email": email,
-            "Location": origin,
-            "Amount": amount,
-            "Complete": payment_status,
-            "Notes": notes,
+            "Phone": phone,
+            "Address": address,
+            "City": city,
+            "State": state,
+            "Zip": zip_code,
+            "Amount Owed": amount_owed,
+            "Amount Received": amount_received,
+            "Balance": balance,
+            "Status": status,
+            "Notes": notes
         }
         update_row_in_sheet(sheet_name, selected_index + 2, updated_data)
         st.success("Renter info updated successfully.")
