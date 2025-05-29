@@ -34,19 +34,19 @@ def show():
                     booking_date.strftime("%Y-%m-%d"),
                     renter_name,
                     f"Rental {check_in} to {check_out}",
-                    "Islamorada",  # Hardcoded property
+                    "Islamorada",  # Static property
                     payment_type,
                     amount,
                     notes,
-                    "",  # Receipt Link placeholder (not used here)
+                    "",  # Receipt Link placeholder
                     email,
                     origin,
                     check_in.strftime("%Y-%m-%d"),
                     check_out.strftime("%Y-%m-%d"),
                     status,
-                    amount,  # Amount Owed
-                    amount,  # Amount Received
-                    0.0      # Balance
+                    amount,
+                    amount,
+                    0.0
                 ]
                 append_row_to_sheet(sheet_name, row)
                 st.success("✅ Income logged successfully.")
@@ -58,6 +58,7 @@ def show():
             sheet_name = f"{year} OPP Expenses"
 
             expense_date = st.date_input("Expense Date", date.today())
+            month = expense_date.strftime("%B")  # Used for Drive folder & row
 
             purchaser = st.selectbox("Purchaser", [
                 "Cash", "Debit C6270", "JB C6443B", "JB J5062B", "JB C1112",
@@ -77,12 +78,14 @@ def show():
             receipt_file = st.file_uploader("Upload Receipt", type=["jpg", "jpeg", "png", "pdf"])
 
             if st.form_submit_button("Log Expense"):
-                month = expense_date.strftime("%B")
                 drive_url = ""
-
                 if receipt_file:
-                    folder_id = get_drive_folder_id(year, expense_date)  # Correct usage
-                    drive_url = upload_file_to_drive(receipt_file, folder_id)
+                    try:
+                        folder_id = get_drive_folder_id(year, month)
+                        drive_url = upload_file_to_drive(receipt_file, folder_id)
+                    except Exception as e:
+                        st.error(f"❌ Upload failed: {e}")
+                        return
 
                 row = [
                     month,
