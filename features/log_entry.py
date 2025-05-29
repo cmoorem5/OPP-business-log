@@ -79,9 +79,10 @@ def show():
 
             if st.form_submit_button("Log Expense"):
                 drive_url = ""
+
                 if receipt_file:
                     try:
-                        folder_id = get_drive_folder_id(year, month)
+                        folder_id = get_drive_folder_id(month)  # ✅ Fixed for your setup
                         drive_url = upload_file_to_drive(receipt_file, folder_id)
                     except Exception as e:
                         st.error(f"❌ Upload failed: {e}")
