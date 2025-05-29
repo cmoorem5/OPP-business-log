@@ -12,23 +12,30 @@ def show():
 
     st.subheader("Select Renter to Edit")
 
-    # Basic filter
+    # DEBUG: show columns in case of mismatch
+    st.write("Columns found:", df.columns.tolist())
+
+    if "Rental Start" not in df.columns or "Rental End" not in df.columns:
+        st.error("Missing 'Rental Start' or 'Rental End' column in the sheet.")
+        return
+
     df["Rental Start"] = pd.to_datetime(df["Rental Start"], errors="coerce")
     df["Rental End"] = pd.to_datetime(df["Rental End"], errors="coerce")
     today = pd.Timestamp.today()
+
     active_df = df[
         (df["Rental End"] >= today) &
         (df["Renter Name"].notna())
     ].copy()
 
+    if active_df.empty:
+        st.info("No active or upcoming renters to edit.")
+        return
+
     active_df["Label"] = active_df.apply(
         lambda row: f"{row['Renter Name']} — {row['Property']} ({row['Rental Start'].strftime('%b %d')} to {row['Rental End'].strftime('%b %d')})",
         axis=1
     )
-
-    if active_df.empty:
-        st.info("No active or upcoming renters to edit.")
-        return
 
     selected_label = st.selectbox("Choose Renter", active_df["Label"])
     selected_row = active_df[active_df["Label"] == selected_label].iloc[0]
@@ -41,7 +48,8 @@ def show():
         email = st.text_input("Email Address", value=selected_row.get("Email", ""))
         origin = st.text_input("Location (City, State)", value=selected_row.get("Location", ""))
         amount = st.number_input("Payment Amount", min_value=0.0, step=10.0, value=float(selected_row["Amount"]))
-        payment_status = st.selectbox("Payment Status", ["Paid", "PMT due", "Downpayment received"], index=["Paid", "PMT due", "Downpayment received"].index(selected_row["Complete"]))
+        payment_status = st.selectbox("Payment Status", ["Paid", "PMT due", "Downpayment received"],
+                                      index=["Paid", "PMT due", "Downpayment received"].index(selected_row["Complete"]))
         notes = st.text_area("Notes", value=selected_row.get("Notes", ""))
         submitted = st.form_submit_button("Update Renter Info")
 
@@ -54,6 +62,6 @@ def show():
             "Complete": payment_status,
             "Notes": notes,
         }
-        update_row_in_sheet(sheet_name, selected_index + 2, updated_data)  # +2 to adjust for header and 0-index
+        update_row_in_sheet(sheet_name, selected_index + 2, updated_data)
         st.success("Renter info updated successfully.")
         st.experimental_rerun()
