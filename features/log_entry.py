@@ -50,7 +50,20 @@ def show():
 
             expense_date = st.date_input("Date", date.today())
             property_name = st.selectbox("Property", ["Florida", "Maine"])
-            category = st.selectbox("Category", ["Mortgage", "Cable/Internet", "Electric", "Repairs", "Supplies", "Other"])
+            category = st.selectbox(
+                "Category",
+                [
+                    "Property Expense",
+                    "Furnishings & Supplies",
+                    "Guest & Operational Expenses",
+                    "Travel & Transportation",
+                    "Legal & Professional Services",
+                    "Food & Beverage",
+                    "Taxes & Compliance",
+                    "Business Expansion & Improvements",
+                    "Misc & Other"
+                ]
+            )
             description = st.text_input("Item/Description")
             amount = st.number_input("Amount", min_value=0.0, step=5.0)
             receipt_file = st.file_uploader("Upload Receipt (optional)", type=["jpg", "jpeg", "png", "pdf"])
