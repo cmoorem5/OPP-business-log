@@ -3,8 +3,7 @@ import pandas as pd
 import re
 import matplotlib.pyplot as plt
 from utils.google_sheets import load_sheet_as_df
-from utils.google_drive import make_clickable_link
-
+from utils.google_drive import generate_drive_link
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[:, df.columns.str.strip() != ""]
@@ -15,7 +14,6 @@ def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
         counts[col] += 1
     df.columns = new_cols
     return df
-
 
 def extract_first_valid_date(date_str):
     if not isinstance(date_str, str):
@@ -31,7 +29,6 @@ def extract_first_valid_date(date_str):
             return pd.to_datetime(date, errors="coerce")
     return None
 
-
 def filter_df(df, props, cats, stats, date_col, date_range):
     mask = df["Property"].isin(props)
     if cats and "Category" in df.columns:
@@ -44,7 +41,6 @@ def filter_df(df, props, cats, stats, date_col, date_range):
             start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
             mask &= df[date_col].between(start, end)
     return df.loc[mask]
-
 
 def show():
     st.title("📂 View Logged Entries")
@@ -91,10 +87,16 @@ def show():
     filtered = filter_df(df.copy(), props, cats, stats, date_col, date_range)
 
     if "Receipt Link" in filtered.columns:
-        filtered["Receipt Link"] = filtered["Receipt Link"].apply(make_clickable_link)
+        filtered["Receipt Link"] = filtered["Receipt Link"].apply(
+            lambda fid: f'<a href="{generate_drive_link(fid)}" target="_blank">📄 View</a>'
+            if pd.notna(fid) and fid != "" else ""
+        )
 
     st.markdown(f"**{len(filtered)} entries found**")
-    st.dataframe(filtered, use_container_width=True, hide_index=True)
+    st.markdown(
+        filtered.to_html(escape=False, index=False),
+        unsafe_allow_html=True
+    )
 
     csv = filtered.to_csv(index=False).encode("utf-8")
     st.download_button("⬇️ Download CSV", data=csv, file_name=f"{view_type.lower()}_{year}_filtered.csv", mime="text/csv")
@@ -121,7 +123,6 @@ def show():
                 )
                 month_key = "Month"
 
-            # Bar: Total by Month
             month_totals = (
                 filtered.groupby(month_key)["Amount (raw)"]
                 .sum()
@@ -131,7 +132,6 @@ def show():
                 ])
                 .dropna()
             )
-
             fig1, ax1 = plt.subplots()
             ax1.bar(month_totals.index, month_totals.values)
             ax1.set_title("Total by Month")
@@ -140,7 +140,6 @@ def show():
                 ax1.text(i, v, f"${v:,.0f}", ha='center', va='bottom')
             st.pyplot(fig1)
 
-            # Bar: Total by Property
             prop_totals = (
                 filtered.groupby("Property")["Amount (raw)"]
                 .sum()
@@ -154,7 +153,6 @@ def show():
                 ax2.text(i, v, f"${v:,.0f}", ha='center', va='bottom')
             st.pyplot(fig2)
 
-            # Pie: Category Breakdown
             if "Category" in filtered.columns:
                 cat_totals = (
                     filtered.groupby("Category")["Amount (raw)"]
