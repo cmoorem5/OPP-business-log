@@ -7,7 +7,7 @@ from utils.google_sheets import load_sheet_as_df
 def show():
     st.title("📊 Finance Dashboard")
 
-    # --- Year selection ---
+    # --- Year Selection ---
     years = st.secrets["years"]
     current_year = datetime.now().year
     default_index = years.index(str(current_year)) if str(current_year) in years else 0
@@ -24,7 +24,18 @@ def show():
         st.warning("One or more data sheets are empty.")
         return
 
-    # --- Preprocess ---
+    # --- Check required columns ---
+    required_income_cols = {"Amount", "Check-in", "Property"}
+    required_expense_cols = {"Amount", "Date", "Property"}
+
+    if not required_income_cols.issubset(df_income.columns):
+        st.error(f"Missing columns in income sheet: {required_income_cols - set(df_income.columns)}")
+        return
+    if not required_expense_cols.issubset(df_expense.columns):
+        st.error(f"Missing columns in expense sheet: {required_expense_cols - set(df_expense.columns)}")
+        return
+
+    # --- Preprocessing ---
     def to_amount(col):
         return pd.to_numeric(col.replace('[\$,]', '', regex=True), errors="coerce")
 
@@ -49,27 +60,24 @@ def show():
     income_summary = summarize(df_income, "Income")
     expense_summary = summarize(df_expense, "Expenses")
 
-    # --- Merge and calc ---
+    # --- Merge ---
     merged = pd.merge(income_summary, expense_summary, how="outer", on=["Property", "Month"]).fillna(0)
     merged["Profit"] = merged["Income"] - merged["Expenses"]
 
-    # --- Download ---
+    # --- CSV Download ---
     csv = merged.to_csv(index=False).encode("utf-8")
     st.download_button("⬇️ Download Summary CSV", data=csv, file_name=f"{selected_year}_summary.csv", mime="text/csv")
 
-    # --- Charts per property ---
+    # --- Per Property Charts ---
+    months_order = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ]
     properties = merged["Property"].unique()
     for prop in properties:
         with st.expander(f"📈 {prop}"):
             prop_data = merged[merged["Property"] == prop].copy()
-            prop_data["Month"] = pd.Categorical(
-                prop_data["Month"],
-                categories=[
-                    "January", "February", "March", "April", "May", "June",
-                    "July", "August", "September", "October", "November", "December"
-                ],
-                ordered=True
-            )
+            prop_data["Month"] = pd.Categorical(prop_data["Month"], categories=months_order, ordered=True)
             prop_data = prop_data.sort_values("Month")
 
             fig, ax = plt.subplots()
