@@ -9,11 +9,12 @@ def load_dashboard_data(year: str = None):
     if not year:
         year = str(datetime.now().year)
 
+    sheet_id = st.secrets["gsheet_id"]
     income_sheet = f"{year} OPP Income"
     expense_sheet = f"{year} OPP Expenses"
 
-    df_income = load_sheet_as_df(income_sheet)
-    df_expense = load_sheet_as_df(expense_sheet)
+    df_income = load_sheet_as_df(sheet_id, income_sheet)
+    df_expense = load_sheet_as_df(sheet_id, expense_sheet)
 
     df_income["Amount Owed"] = pd.to_numeric(df_income["Amount Owed"], errors="coerce").fillna(0)
     df_income["Amount Received"] = pd.to_numeric(df_income["Amount Received"], errors="coerce").fillna(0)
