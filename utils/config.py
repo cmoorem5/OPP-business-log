@@ -1,21 +1,24 @@
+import streamlit as st
 from datetime import date
 
-# Map years → months → Drive folder IDs
-MONTHLY_FOLDERS = {
-    2025: {
-        "April":    "1wPerZFB-9FufTZOGfFXf2xMVg4VlGtdC",
-        "May":      "1e12yCfo8WZS8gnYuSPbxeHiZ1aVWbbJe",
-        "June":     "1WRSSZUGPHgGvd1cSUNDEjpTGq2FmrqcZ",
-        "July":     "10nWoAibOWzVeWx0Qn3TC8Z6g-UXkToPd",
-        "August":   "1xvT2NA9rPpXX0SQ1CKE9NeTbc9mvrgxK",
-        "September":"160isZV8ja5Kgw7sKx88f969tIUZR6Jfo",
-        "October":  "1XbP4T78e71CYA5s-1ksPYK6bujmo-UQn",
-        "November": "1zxxtG1cwvpcckQ3nvB3zKHStxDBfRFF6",
-        "December": "1iJwfC3siEudH8uzdZGwlid6ufhFG5AMb",
-    }
-}
+# --- Load centralized values from secrets ---
+SHEET_ID = st.secrets["gsheet_id"]
+DRIVE_FOLDER_ID = st.secrets["gdrive_folder_id"]
+YEARS = st.secrets["years"]
+INCOME_TABS = st.secrets["income_tabs"]
+EXPENSE_TABS = st.secrets["expense_tabs"]
+RECURRING_TABS = st.secrets["recurring_expense_tabs"]
+STATUS_OPTIONS = st.secrets["payment_statuses"]
+
+# --- Load monthly Drive folders by year from secrets (optional future feature) ---
+# Example structure in secrets.toml (not yet added):
+# monthly_folders.2025.April = "folder_id"
+# monthly_folders.2025.May = "folder_id"
+MONTHLY_FOLDERS = st.secrets.get("monthly_folders", {})
+
 
 def get_drive_folder_id(entry_date: date) -> str | None:
-    """Return the Drive folder ID for the given date, or None if not configured."""
-    year_map = MONTHLY_FOLDERS.get(entry_date.year, {})
-    return year_map.get(entry_date.strftime("%B"))
+    """Return Google Drive folder ID based on the entry date's year and month."""
+    year = str(entry_date.year)
+    month = entry_date.strftime("%B")
+    return MONTHLY_FOLDERS.get(year, {}).get(month)
