@@ -1,21 +1,28 @@
 import streamlit as st
 import pandas as pd
 from utils.google_sheets import load_sheet_as_df, update_row_in_sheet
-
-# --- Load Google Sheet ID from secrets ---
-SHEET_ID = st.secrets["gsheet_id"]
+from utils.config import SHEET_ID, STATUS_OPTIONS, DEFAULT_TAB_YEAR
 
 def show():
     st.title("📋 Renter Activity")
 
     # --- Year Selection ---
-    year = st.selectbox("Select Year", ["2025", "2026"], key="renter_year")
+    year = st.selectbox("Select Year", ["2025", "2026"], index=["2025", "2026"].index(DEFAULT_TAB_YEAR), key="renter_year")
     sheet_name = f"{year} OPP Income"
 
     # --- Load Data ---
-    df = load_sheet_as_df(SHEET_ID, sheet_name)
+    try:
+        df = load_sheet_as_df(SHEET_ID, sheet_name)
+    except Exception as e:
+        st.error(f"❌ Failed to load sheet: {e}")
+        st.stop()
+
     if df.empty:
         st.warning(f"No data found in {sheet_name}")
+        return
+
+    if not all(col in df.columns for col in ["Check-in", "Renter Name", "Amount", "Status", "Email", "Location"]):
+        st.error("Sheet is missing one or more required columns.")
         return
 
     # --- Display Table ---
@@ -34,10 +41,9 @@ def show():
         location = st.text_input("Location", selected.get("Location", ""))
         amount = st.number_input("Amount", value=float(selected.get("Amount", 0.0)), step=10.0)
 
-        status_options = ["Paid", "PMT Due", "Downpayment Received"]
-        current_status = selected.get("Status", "PMT Due")
-        status_index = status_options.index(current_status) if current_status in status_options else 1
-        status = st.selectbox("Status", status_options, index=status_index)
+        current_status = selected.get("Status", STATUS_OPTIONS[1])
+        status_index = STATUS_OPTIONS.index(current_status) if current_status in STATUS_OPTIONS else 1
+        status = st.selectbox("Status", STATUS_OPTIONS, index=status_index)
 
         submitted = st.form_submit_button("Update Entry")
         if submitted:
@@ -49,6 +55,5 @@ def show():
                 "Amount": amount,
                 "Status": status
             })
-            update_row_in_sheet(SHEET_ID, sheet_name, row_index + 2, updated_row)  # +2 to account for header + 1-index
-            st.success("Entry updated. Refresh to view updated table.")
-
+            update_row_in_sheet(SHEET_ID, sheet_name, row_index + 2, updated_row)
+            st.success("✅ Entry updated. Refresh to view changes.")
