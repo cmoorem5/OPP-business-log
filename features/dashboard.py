@@ -1,14 +1,83 @@
 import streamlit as st
-from utils.dashboard_helpers import (
-    load_dashboard_data,
-    build_financial_summary,
-    render_property_charts
-)
+import pandas as pd
+import matplotlib.pyplot as plt
+from datetime import datetime
+from utils.google_sheets import load_sheet_as_df
 
 def show():
     st.title("📊 Finance Dashboard")
 
-    df_income, df_expense = load_dashboard_data()
-    summary = build_financial_summary(df_income, df_expense)
+    # --- Year selection ---
+    years = st.secrets["years"]
+    current_year = datetime.now().year
+    default_index = years.index(str(current_year)) if str(current_year) in years else 0
+    selected_year = st.selectbox("Select Year", years, index=default_index)
 
-    render_property_charts(summary)
+    sheet_id = st.secrets["gsheet_id"]
+    income_tab = f"{selected_year} OPP Income"
+    expense_tab = f"{selected_year} OPP Expenses"
+
+    df_income = load_sheet_as_df(sheet_id, income_tab)
+    df_expense = load_sheet_as_df(sheet_id, expense_tab)
+
+    if df_income.empty or df_expense.empty:
+        st.warning("One or more data sheets are empty.")
+        return
+
+    # --- Preprocess ---
+    def to_amount(col):
+        return pd.to_numeric(col.replace('[\$,]', '', regex=True), errors="coerce")
+
+    df_income["Amount"] = to_amount(df_income["Amount"])
+    df_expense["Amount"] = to_amount(df_expense["Amount"])
+
+    df_income["Month"] = pd.to_datetime(df_income["Check-in"], errors="coerce").dt.strftime("%B")
+    df_expense["Month"] = pd.to_datetime(df_expense["Date"], errors="coerce").dt.strftime("%B")
+
+    df_income = df_income.dropna(subset=["Amount", "Month", "Property"])
+    df_expense = df_expense.dropna(subset=["Amount", "Month", "Property"])
+
+    # --- Grouping ---
+    def summarize(df, label):
+        return (
+            df.groupby(["Property", "Month"])["Amount"]
+            .sum()
+            .reset_index()
+            .rename(columns={"Amount": f"{label}"})
+        )
+
+    income_summary = summarize(df_income, "Income")
+    expense_summary = summarize(df_expense, "Expenses")
+
+    # --- Merge and calc ---
+    merged = pd.merge(income_summary, expense_summary, how="outer", on=["Property", "Month"]).fillna(0)
+    merged["Profit"] = merged["Income"] - merged["Expenses"]
+
+    # --- Download ---
+    csv = merged.to_csv(index=False).encode("utf-8")
+    st.download_button("⬇️ Download Summary CSV", data=csv, file_name=f"{selected_year}_summary.csv", mime="text/csv")
+
+    # --- Charts per property ---
+    properties = merged["Property"].unique()
+    for prop in properties:
+        with st.expander(f"📈 {prop}"):
+            prop_data = merged[merged["Property"] == prop].copy()
+            prop_data["Month"] = pd.Categorical(
+                prop_data["Month"],
+                categories=[
+                    "January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"
+                ],
+                ordered=True
+            )
+            prop_data = prop_data.sort_values("Month")
+
+            fig, ax = plt.subplots()
+            ax.bar(prop_data["Month"], prop_data["Income"], label="Income")
+            ax.bar(prop_data["Month"], prop_data["Expenses"], bottom=prop_data["Income"] - prop_data["Profit"], label="Expenses")
+            ax.plot(prop_data["Month"], prop_data["Profit"], color="green", marker="o", label="Profit")
+
+            ax.set_title(f"{prop} - Monthly Finance Overview")
+            ax.set_ylabel("Amount ($)")
+            ax.legend()
+            st.pyplot(fig)
