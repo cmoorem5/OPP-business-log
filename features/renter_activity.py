@@ -1,28 +1,28 @@
 import streamlit as st
 import pandas as pd
-from datetime import date
 from utils.google_sheets import load_sheet_as_df, update_row_in_sheet
 
-# Load Google Sheet ID from secrets
+# --- Load Google Sheet ID from secrets ---
 SHEET_ID = st.secrets["gsheet_id"]
 
 def show():
     st.title("📋 Renter Activity")
 
+    # --- Year Selection ---
     year = st.selectbox("Select Year", ["2025", "2026"], key="renter_year")
     sheet_name = f"{year} OPP Income"
 
+    # --- Load Data ---
     df = load_sheet_as_df(SHEET_ID, sheet_name)
     if df.empty:
         st.warning(f"No data found in {sheet_name}")
         return
 
-    editable_cols = ["Renter Name", "Email", "Location", "Amount", "Status"]
-    status_options = ["Paid", "PMT Due", "Downpayment Received"]
-
+    # --- Display Table ---
     st.markdown("### Renter Log")
     st.dataframe(df[["Check-in", "Renter Name", "Amount", "Status", "Email", "Location"]], use_container_width=True)
 
+    # --- Edit Entry Form ---
     st.markdown("---")
     st.subheader("🔧 Edit Renter Entry")
     with st.form("edit_renter_form", clear_on_submit=False):
@@ -34,12 +34,13 @@ def show():
         location = st.text_input("Location", selected.get("Location", ""))
         amount = st.number_input("Amount", value=float(selected.get("Amount", 0.0)), step=10.0)
 
-        status_value = selected.get("Status", "PMT Due")
-        status_index = status_options.index(status_value) if status_value in status_options else 1
+        status_options = ["Paid", "PMT Due", "Downpayment Received"]
+        current_status = selected.get("Status", "PMT Due")
+        status_index = status_options.index(current_status) if current_status in status_options else 1
         status = st.selectbox("Status", status_options, index=status_index)
 
-        submit = st.form_submit_button("Update Entry")
-        if submit:
+        submitted = st.form_submit_button("Update Entry")
+        if submitted:
             updated_row = selected.to_dict()
             updated_row.update({
                 "Renter Name": renter_name,
@@ -48,5 +49,6 @@ def show():
                 "Amount": amount,
                 "Status": status
             })
-            update_row_in_sheet(SHEET_ID, sheet_name, row_index + 2, updated_row)  # +2 accounts for header row
-            st.success("Entry updated. Refresh to see the updated table.")
+            update_row_in_sheet(SHEET_ID, sheet_name, row_index + 2, updated_row)  # +2 to account for header + 1-index
+            st.success("Entry updated. Refresh to view updated table.")
+
