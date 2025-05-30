@@ -1,44 +1,26 @@
 import streamlit as st
-import pandas as pd
-from utils.google_sheets import load_sheet_as_df
+from utils.export_helpers import (
+    load_and_process_expenses,
+    generate_monthly_summary,
+    generate_type_totals
+)
 
 def show():
     st.title("📊 Recurring vs. One-Time Expenses")
-
     year = st.radio("Select Year", ["2025", "2026"], horizontal=True)
 
     try:
-        df = load_sheet_as_df(f"{year} OPP Expenses")
-
+        df = load_and_process_expenses(year)
         if df.empty:
             st.warning("No expense data found.")
             return
 
-        if "Amount" not in df.columns:
-            st.error("'Amount' column missing in sheet.")
-            return
-
-        df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce")
-        df = df.dropna(subset=["Amount"])
-
-        df["Type"] = df["Comments"].fillna("").apply(
-            lambda x: "Recurring" if "recurring" in x.lower() else "One-Time"
-        )
-
-        df["Month"] = pd.to_datetime(df["Date"], errors="coerce").dt.strftime("%B")
-        df = df.dropna(subset=["Month"])
-
-        summary = df.groupby(["Month", "Type"])["Amount"].sum().unstack(fill_value=0)
-        summary = summary.reindex([
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ], fill_value=0)
-
         st.subheader("Monthly Expense Breakdown")
+        summary = generate_monthly_summary(df)
         st.bar_chart(summary)
 
         st.subheader("📋 Totals by Type")
-        totals = df.groupby("Type")["Amount"].sum()
+        totals = generate_type_totals(df)
         st.write(totals.reset_index())
 
         csv = df.to_csv(index=False)
