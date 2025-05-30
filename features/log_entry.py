@@ -3,7 +3,7 @@ from datetime import date
 import re
 from utils.google_sheets import append_row_to_sheet
 from utils.google_drive import upload_file_to_drive
-from utils.config import get_drive_folder_id
+from utils.config import SHEET_ID, get_drive_folder_id
 
 def sanitize_filename(filename: str) -> str:
     name = filename.strip().lower().replace(" ", "_")
@@ -47,7 +47,7 @@ def show():
                     payment_type,
                     amount,
                     notes,
-                    "",  # Receipt Link placeholder
+                    "",
                     email,
                     origin,
                     check_in.strftime("%Y-%m-%d"),
@@ -58,7 +58,7 @@ def show():
                     0.0
                 ]
                 row_dict = dict(zip(headers, values))
-                append_row_to_sheet(sheet_name, row_dict)
+                append_row_to_sheet(SHEET_ID, sheet_name, row_dict)
                 st.success("✅ Income logged successfully.")
 
     # --- EXPENSE ENTRY ---
@@ -88,7 +88,6 @@ def show():
 
             if st.form_submit_button("Log Expense"):
                 drive_url = ""
-
                 if receipt_file:
                     try:
                         folder_id = get_drive_folder_id(expense_date)
@@ -115,5 +114,5 @@ def show():
                     drive_url
                 ]
                 row_dict = dict(zip(headers, values))
-                append_row_to_sheet(sheet_name, row_dict)
+                append_row_to_sheet(SHEET_ID, sheet_name, row_dict)
                 st.success("✅ Expense logged successfully.")
