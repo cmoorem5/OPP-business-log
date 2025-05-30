@@ -2,8 +2,10 @@ import streamlit as st
 import pandas as pd
 import re
 import matplotlib.pyplot as plt
+
 from utils.google_sheets import load_sheet_as_df
 from utils.google_drive import generate_drive_link
+from utils.config import SHEET_ID, DEFAULT_TAB_YEAR
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[:, df.columns.str.strip() != ""]
@@ -50,11 +52,11 @@ def show():
         st.experimental_rerun()
 
     view_type = st.radio("Select Entry Type", ["Income", "Expense"], horizontal=True)
-    year = st.selectbox("Year", ["2025", "2026"], index=0)
+    year = st.selectbox("Year", ["2025", "2026"], index=["2025", "2026"].index(DEFAULT_TAB_YEAR))
 
     if view_type == "Income":
         st.subheader("💰 Income Entries")
-        df = _clean_df(load_sheet_as_df(f"{year} OPP Income"))
+        df = _clean_df(load_sheet_as_df(SHEET_ID, f"{year} OPP Income"))
         if "Income Amount" in df.columns:
             df.rename(columns={"Income Amount": "Amount"}, inplace=True)
         df["Rental Start Date"] = df["Rental Dates"].apply(extract_first_valid_date)
@@ -72,7 +74,7 @@ def show():
         date_col = "Rental Start Date"
     else:
         st.subheader("💸 Expense Entries")
-        df = _clean_df(load_sheet_as_df(f"{year} OPP Expenses"))
+        df = _clean_df(load_sheet_as_df(SHEET_ID, f"{year} OPP Expenses"))
         skipped = pd.DataFrame()
         date_col = "Date"
 
