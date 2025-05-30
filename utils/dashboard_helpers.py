@@ -4,38 +4,43 @@ import streamlit as st
 from datetime import datetime
 from utils.google_sheets import load_sheet_as_df
 
-def load_dashboard_data():
-    current_year = str(datetime.now().year)
-    income_sheet = f"{current_year} OPP Income"
-    expense_sheet = f"{current_year} OPP Expenses"
+def load_dashboard_data(year: str = None):
+    """Load and preprocess income and expense data for a given year."""
+    if not year:
+        year = str(datetime.now().year)
+
+    income_sheet = f"{year} OPP Income"
+    expense_sheet = f"{year} OPP Expenses"
 
     df_income = load_sheet_as_df(income_sheet)
+    df_expense = load_sheet_as_df(expense_sheet)
+
     df_income["Amount Owed"] = pd.to_numeric(df_income["Amount Owed"], errors="coerce").fillna(0)
     df_income["Amount Received"] = pd.to_numeric(df_income["Amount Received"], errors="coerce").fillna(0)
-    df_income["Month"] = df_income["Month"].str.strip()
+    df_income["Month"] = df_income["Month"].astype(str).str.strip()
     df_income = df_income.dropna(subset=["Month", "Property"])
 
-    df_expense = load_sheet_as_df(expense_sheet)
     df_expense["Amount"] = pd.to_numeric(df_expense["Amount"], errors="coerce").fillna(0)
-    df_expense["Month"] = df_expense["Month"].str.strip()
+    df_expense["Month"] = df_expense["Month"].astype(str).str.strip()
     df_expense = df_expense.dropna(subset=["Month", "Property"])
 
     return df_income, df_expense
 
 def build_financial_summary(df_income, df_expense):
+    """Aggregate income, expenses, and calculate profit/due per property/month."""
     month_order = {
         "January": 1, "February": 2, "March": 3, "April": 4,
         "May": 5, "June": 6, "July": 7, "August": 8,
         "September": 9, "October": 10, "November": 11, "December": 12
     }
 
-    # Normalize property labels
     property_map = {
         "Islamorada": "Florida",
         "Hooked on Islamorada": "Florida",
         "Sebago": "Maine",
         "Standish": "Maine"
     }
+
     df_income["Property"] = df_income["Property"].replace(property_map)
     df_expense["Property"] = df_expense["Property"].replace(property_map)
 
@@ -45,18 +50,20 @@ def build_financial_summary(df_income, df_expense):
     }).reset_index()
 
     expense_grouped = df_expense.groupby(["Property", "Month"])["Amount"].sum().reset_index()
+    expense_grouped = expense_grouped.rename(columns={"Amount": "Expenses"})
 
     summary = pd.merge(income_grouped, expense_grouped, how="outer", on=["Property", "Month"])
     summary["Amount Received"] = summary["Amount Received"].fillna(0)
     summary["Amount Owed"] = summary["Amount Owed"].fillna(0)
-    summary["Amount"] = summary["Amount"].fillna(0)
-    summary["Profit"] = summary["Amount Received"] - summary["Amount"]
+    summary["Expenses"] = summary["Expenses"].fillna(0)
+    summary["Profit"] = summary["Amount Received"] - summary["Expenses"]
     summary["Due"] = summary["Amount Owed"] - summary["Amount Received"]
     summary["Month Num"] = summary["Month"].map(month_order)
 
     return summary.sort_values(["Property", "Month Num"])
 
 def render_property_charts(summary):
+    """Render per-property visual breakdown of income, expenses, and profit."""
     properties = sorted(summary["Property"].dropna().unique())
 
     for prop in properties:
@@ -69,7 +76,7 @@ def render_property_charts(summary):
 
         # Totals
         total_income = filtered_data["Amount Received"].sum()
-        total_expense = filtered_data["Amount"].sum()
+        total_expense = filtered_data["Expenses"].sum()
         total_due = filtered_data["Due"].sum()
         total_profit = total_income - total_expense
 
@@ -95,7 +102,7 @@ def render_property_charts(summary):
         x = range(len(filtered_data))
 
         ax.bar(x, filtered_data["Amount Received"], width=bar_width, label="Income", color="#4CAF50")
-        ax.bar([i + bar_width for i in x], filtered_data["Amount"], width=bar_width, label="Expenses", color="#F44336")
+        ax.bar([i + bar_width for i in x], filtered_data["Expenses"], width=bar_width, label="Expenses", color="#F44336")
 
         ax.plot(
             [i + bar_width / 2 for i in x],
