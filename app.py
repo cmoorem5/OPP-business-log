@@ -36,8 +36,7 @@ st.markdown(
 )
 
 # --- Sidebar Layout ---
-sidebar_logo = Image.open("assets/favicon.png")
-st.sidebar.image(sidebar_logo, use_container_width=True)
+st.sidebar.image(Image.open("assets/favicon.png"), use_container_width=True)
 st.sidebar.title("📘 OPP Finance Tracker")
 
 page = st.sidebar.radio(
@@ -51,7 +50,6 @@ page = st.sidebar.radio(
     ]
 )
 
-# --- Sidebar Info ---
 with st.sidebar.expander("🧭 App Info", expanded=True):
     st.markdown("**Version:** 1.3.0  \n**Updated:** May 2025")
     st.markdown("Built by: **Oceanview Property Partners**")
@@ -62,8 +60,7 @@ routes = {
     "Rental Entry": log_entry,
     "Renter Activity": renter_activity,
     "View Entries": view_entries,
-    "Data Export": export,
+    "Data Export": export
 }
 
 routes[page].show()
-
