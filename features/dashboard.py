@@ -25,7 +25,7 @@ def show():
         return
 
     # --- Check required columns ---
-    required_income_cols = {"Amount", "Check-in", "Property"}
+    required_income_cols = {"Amount Received", "Check-in", "Property"}
     required_expense_cols = {"Amount", "Date", "Property"}
 
     if not required_income_cols.issubset(df_income.columns):
@@ -39,26 +39,26 @@ def show():
     def to_amount(col):
         return pd.to_numeric(col.replace('[\$,]', '', regex=True), errors="coerce")
 
-    df_income["Amount"] = to_amount(df_income["Amount"])
+    df_income["Amount Received"] = to_amount(df_income["Amount Received"])
     df_expense["Amount"] = to_amount(df_expense["Amount"])
 
     df_income["Month"] = pd.to_datetime(df_income["Check-in"], errors="coerce").dt.strftime("%B")
     df_expense["Month"] = pd.to_datetime(df_expense["Date"], errors="coerce").dt.strftime("%B")
 
-    df_income = df_income.dropna(subset=["Amount", "Month", "Property"])
+    df_income = df_income.dropna(subset=["Amount Received", "Month", "Property"])
     df_expense = df_expense.dropna(subset=["Amount", "Month", "Property"])
 
     # --- Grouping ---
-    def summarize(df, label):
+    def summarize(df, value_col, label):
         return (
-            df.groupby(["Property", "Month"])["Amount"]
+            df.groupby(["Property", "Month"])[value_col]
             .sum()
             .reset_index()
-            .rename(columns={"Amount": f"{label}"})
+            .rename(columns={value_col: label})
         )
 
-    income_summary = summarize(df_income, "Income")
-    expense_summary = summarize(df_expense, "Expenses")
+    income_summary = summarize(df_income, "Amount Received", "Income")
+    expense_summary = summarize(df_expense, "Amount", "Expenses")
 
     # --- Merge ---
     merged = pd.merge(income_summary, expense_summary, how="outer", on=["Property", "Month"]).fillna(0)
@@ -82,7 +82,7 @@ def show():
 
             fig, ax = plt.subplots()
             ax.bar(prop_data["Month"], prop_data["Income"], label="Income")
-            ax.bar(prop_data["Month"], prop_data["Expenses"], bottom=prop_data["Income"] - prop_data["Profit"], label="Expenses")
+            ax.bar(prop_data["Month"], prop_data["Expenses"], bottom=0, label="Expenses")
             ax.plot(prop_data["Month"], prop_data["Profit"], color="green", marker="o", label="Profit")
 
             ax.set_title(f"{prop} - Monthly Finance Overview")
