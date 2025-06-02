@@ -2,37 +2,39 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-
-def show_summary_charts(filtered, view_type, date_col):
+def show_summary_charts(filtered: pd.DataFrame, view_type: str, date_col: str):
     with st.expander("📊 Summary Charts", expanded=False):
-        if "Amount" not in filtered.columns:
-            st.warning("No 'Amount' column found in data.")
+        if view_type == "Income":
+            amount_col = "Amount Received"
+        else:
+            amount_col = "Amount"
+
+        if amount_col not in filtered.columns:
+            st.warning(f"❌ '{amount_col}' column not found.")
             return
 
-        # Normalize and clean Amount
+        # Normalize to numeric
         filtered["Amount (raw)"] = pd.to_numeric(
-            filtered["Amount"]
+            filtered[amount_col]
             .astype(str)
             .str.replace(r"[^\d\.\-]", "", regex=True)
             .str.strip(),
             errors="coerce"
         )
 
-        if filtered["Amount (raw)"].dropna().empty:
+        valid_df = filtered.dropna(subset=["Amount (raw)"])
+        if valid_df.empty:
             st.warning("⚠️ No valid numeric data available to display charts.")
             return
 
-        # Month parsing
+        # Extract month
         if view_type == "Income":
-            if "Check-in" not in filtered.columns:
-                st.warning("⚠️ 'Check-in' column not found.")
-                return
-            filtered["Month"] = pd.to_datetime(filtered["Check-in"], errors="coerce").dt.strftime("%B")
+            valid_df["Month"] = pd.to_datetime(valid_df["Check-in"], errors="coerce").dt.strftime("%B")
         else:
-            filtered["Month"] = pd.to_datetime(filtered[date_col], errors="coerce").dt.strftime("%B")
+            valid_df["Month"] = pd.to_datetime(valid_df[date_col], errors="coerce").dt.strftime("%B")
 
-        filtered["Month"] = pd.Categorical(
-            filtered["Month"],
+        valid_df["Month"] = pd.Categorical(
+            valid_df["Month"],
             categories=[
                 "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"
@@ -40,9 +42,9 @@ def show_summary_charts(filtered, view_type, date_col):
             ordered=True
         )
 
-        # --- Monthly Totals ---
+        # --- Monthly Totals Chart ---
         month_totals = (
-            filtered.groupby("Month")["Amount (raw)"]
+            valid_df.groupby("Month")["Amount (raw)"]
             .sum()
             .dropna()
         )
@@ -55,47 +57,3 @@ def show_summary_charts(filtered, view_type, date_col):
         plt.xticks(rotation=45)
         plt.tight_layout()
         st.pyplot(fig1)
-
-        # --- Property Totals ---
-        if "Property" in filtered.columns:
-            prop_totals = (
-                filtered.groupby("Property")["Amount (raw)"]
-                .sum()
-                .sort_values(ascending=False)
-            )
-            fig2, ax2 = plt.subplots(figsize=(8, 4))
-            ax2.bar(prop_totals.index, prop_totals.values)
-            ax2.set_title("Total by Property")
-            ax2.set_ylabel("Amount ($)")
-            for i, v in enumerate(prop_totals.values):
-                ax2.text(i, v, f"${v:,.0f}", ha='center', va='bottom', fontsize=8)
-            plt.xticks(rotation=30)
-            plt.tight_layout()
-            st.pyplot(fig2)
-
-        # --- Category Breakdown (if exists) ---
-        if "Category" in filtered.columns:
-            cat_totals = (
-                filtered.groupby("Category")["Amount (raw)"]
-                .sum()
-                .sort_values(ascending=False)
-            )
-            if len(cat_totals) > 6:
-                top = cat_totals[:6]
-                other_sum = cat_totals[6:].sum()
-                cat_totals = pd.concat([top, pd.Series({"Other": other_sum})])
-
-            fig3, ax3 = plt.subplots()
-            wedges, texts, autotexts = ax3.pie(
-                cat_totals.values,
-                labels=cat_totals.index,
-                autopct=lambda p: f"${p * cat_totals.sum() / 100:,.0f}",
-                startangle=90,
-                wedgeprops=dict(width=0.4, edgecolor='w')
-            )
-            for text in texts + autotexts:
-                text.set_fontsize(8)
-            ax3.set_title("Category Breakdown")
-            ax3.axis("equal")
-            plt.tight_layout()
-            st.pyplot(fig3)
