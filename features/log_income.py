@@ -2,13 +2,23 @@ import streamlit as st
 from datetime import date
 
 from utils.log_helpers import build_income_payload, log_income
-from utils.config import YEARS as INCOME_YEARS, INCOME_SOURCES, PAYMENT_STATUS, PROPERTIES
+from utils.config import YEARS as INCOME_YEARS, PAYMENT_STATUS, PROPERTIES, SHEET_ID
+from utils.google_sheets import load_sheet_as_df
+
+@st.cache_data(ttl=600)
+def get_unique_income_sources(sheet_name):
+    try:
+        df = load_sheet_as_df(SHEET_ID, sheet_name)
+        return sorted(df["Income Source"].dropna().unique().tolist())
+    except Exception:
+        return []
 
 def show_income_form():
     try:
         with st.form("income_form", clear_on_submit=True):
             year = st.selectbox("Log Income To:", INCOME_YEARS, key="income_year")
             sheet_name = f"{year} OPP Income"
+            income_sources = get_unique_income_sources(sheet_name)
 
             booking_date = st.date_input("Booking Date", date.today())
             rental_dates = st.date_input("Rental Date Range", (date.today(), date.today()))
@@ -27,7 +37,7 @@ def show_income_form():
             zip_code = st.text_input("Zip Code")
 
             property_name = st.selectbox("Property", PROPERTIES)
-            income_source = st.selectbox("Income Source", INCOME_SOURCES)
+            income_source = st.selectbox("Income Source", income_sources) if income_sources else st.text_input("Income Source")
             notes = st.text_area("Notes (optional)")
 
             if st.form_submit_button("Log Income"):
