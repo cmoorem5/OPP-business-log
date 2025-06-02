@@ -3,7 +3,10 @@ import pandas as pd
 from utils.google_sheets import load_sheet_as_df, update_row_in_sheet
 from utils.config import SHEET_ID, STATUS_OPTIONS
 
-REQUIRED_COLUMNS = ["Check-in", "Name", "Amount Received", "Status", "Email", "City"]
+REQUIRED_COLUMNS = [
+    "Check-in", "Name", "Email", "Phone", "Address", "City", "State", "Zip",
+    "Amount Owed", "Amount Received", "Balance", "Status", "Notes"
+]
 
 def load_renter_data(sheet_name: str) -> pd.DataFrame:
     try:
@@ -40,12 +43,22 @@ def edit_renter_form(df: pd.DataFrame, sheet_name: str):
 
         renter_name = st.text_input("Renter Name", selected.get("Name", ""))
         email = st.text_input("Email", selected.get("Email", ""))
-        location = st.text_input("City", selected.get("City", ""))
-        amount = st.number_input("Amount Received", value=float(selected.get("Amount Received", 0.0)), step=10.0)
+        phone = st.text_input("Phone", selected.get("Phone", ""))
+        address = st.text_input("Address", selected.get("Address", ""))
+        city = st.text_input("City", selected.get("City", ""))
+        state = st.text_input("State", selected.get("State", ""))
+        zip_code = st.text_input("Zip", selected.get("Zip", ""))
+
+        amount_owed = st.number_input("Amount Owed", value=float(selected.get("Amount Owed", 0.0)), step=10.0)
+        amount_received = st.number_input("Amount Received", value=float(selected.get("Amount Received", 0.0)), step=10.0)
+        balance = round(amount_owed - amount_received, 2)
+        st.write(f"💰 Balance: **${balance:.2f}**")
 
         current_status = selected.get("Status", STATUS_OPTIONS[1])
         status_index = STATUS_OPTIONS.index(current_status) if current_status in STATUS_OPTIONS else 1
         status = st.selectbox("Status", STATUS_OPTIONS, index=status_index)
+
+        notes = st.text_area("Notes", selected.get("Notes", ""))
 
         submitted = st.form_submit_button("Update Entry")
         if submitted:
@@ -53,9 +66,16 @@ def edit_renter_form(df: pd.DataFrame, sheet_name: str):
             updated_row.update({
                 "Name": renter_name,
                 "Email": email,
-                "City": location,
-                "Amount Received": amount,
-                "Status": status
+                "Phone": phone,
+                "Address": address,
+                "City": city,
+                "State": state,
+                "Zip": zip_code,
+                "Amount Owed": amount_owed,
+                "Amount Received": amount_received,
+                "Balance": balance,
+                "Status": status,
+                "Notes": notes
             })
 
             try:
