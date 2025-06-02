@@ -27,5 +27,6 @@ def show_expense_form():
                 )
                 log_expense(sheet_name, row_dict)
                 st.success("✅ Expense logged successfully.")
+                st.experimental_rerun()  # 🔁 Refresh so updates reflect in other views
             except Exception as e:
                 st.error(f"❌ Upload failed: {e}")
