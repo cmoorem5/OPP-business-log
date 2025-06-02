@@ -8,13 +8,14 @@ def show_summary_charts(filtered, view_type, date_col):
             st.warning("No 'Amount' column found in data.")
             return
 
-        # Normalize and clean Amount
-        filtered["Amount (raw)"] = pd.to_numeric(
+        # Clean and parse Amount field
+        filtered["Amount (raw)"] = (
             filtered["Amount"]
             .astype(str)
             .str.replace(r"[^\d\.\-]", "", regex=True)
-            .str.strip(),
-            errors="coerce"
+            .str.strip()
+            .replace({"": pd.NA, "-": pd.NA})
+            .astype(float)
         )
 
         # Debug output
