@@ -1,30 +1,50 @@
 import pandas as pd
+import io
+
 from utils.google_sheets import load_sheet_as_df
+from utils.config import SHEET_ID
 
-MONTH_ORDER = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-]
 
-def load_and_process_expenses(year: str) -> pd.DataFrame:
-    df = load_sheet_as_df(f"{year} OPP Expenses")
+def load_and_process_data(year: str):
+    income_tab = f"{year} OPP Income"
+    expense_tab = f"{year} OPP Expenses"
 
-    if "Amount" not in df.columns:
-        raise ValueError("'Amount' column missing in sheet.")
+    income_df = load_sheet_as_df(SHEET_ID, income_tab)
+    expense_df = load_sheet_as_df(SHEET_ID, expense_tab)
 
-    df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce")
-    df = df.dropna(subset=["Amount"])
+    income_df = clean_amount_column(income_df, "Amount Received")
+    expense_df = clean_amount_column(expense_df, "Amount")
 
-    df["Type"] = df["Comments"].fillna("").apply(
-        lambda x: "Recurring" if "recurring" in x.lower() else "One-Time"
-    )
-    df["Month"] = pd.to_datetime(df["Date"], errors="coerce").dt.strftime("%B")
-    df = df.dropna(subset=["Month"])
+    return income_df, expense_df
+
+
+def clean_amount_column(df: pd.DataFrame, col: str) -> pd.DataFrame:
+    df[col] = pd.to_numeric(
+        df[col].astype(str).str.replace(r"[\$,]", "", regex=True),
+        errors="coerce"
+    ).fillna(0)
     return df
 
-def generate_monthly_summary(df: pd.DataFrame) -> pd.DataFrame:
-    summary = df.groupby(["Month", "Type"])["Amount"].sum().unstack(fill_value=0)
-    return summary.reindex(MONTH_ORDER, fill_value=0)
 
-def generate_type_totals(df: pd.DataFrame) -> pd.DataFrame:
-    return df.groupby("Type")["Amount"].sum()
+def generate_summary(income_df: pd.DataFrame, expense_df: pd.DataFrame) -> pd.DataFrame:
+    total_income = income_df["Amount Received"].sum() if not income_df.empty else 0
+    total_expense = expense_df["Amount"].sum() if not expense_df.empty else 0
+    profit = total_income - total_expense
+
+    return pd.DataFrame({
+        "Category": ["Total Income", "Total Expenses", "Profit"],
+        "Amount": [total_income, total_expense, profit]
+    })
+
+
+def generate_excel_export(income_df, expense_df, summary_df=None):
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        if not income_df.empty:
+            income_df.to_excel(writer, sheet_name="Income", index=False)
+        if not expense_df.empty:
+            expense_df.to_excel(writer, sheet_name="Expenses", index=False)
+        if summary_df is not None:
+            summary_df.to_excel(writer, sheet_name="Summary", index=False)
+    output.seek(0)
+    return output
