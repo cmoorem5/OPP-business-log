@@ -20,7 +20,7 @@ def show_income_form():
 
             renter_name = st.text_input("Renter Name")
             email = st.text_input("Renter Email")
-            phone = st.text_input("Phone Number")
+            phone = st.text_input("Phone")
             address = st.text_input("Address")
             city = st.text_input("City")
             state = st.text_input("State")
@@ -51,5 +51,6 @@ def show_income_form():
                 )
                 log_income(sheet_name, row_dict)
                 st.success("✅ Income logged successfully.")
+                st.experimental_rerun()  # 🔁 Force refresh so new row appears in Renter Activity
     except Exception as e:
         st.error(f"❌ Income form crashed: {e}")
