@@ -61,6 +61,6 @@ def edit_renter_form(df: pd.DataFrame, sheet_name: str):
                     st.error(f"❌ Row {i + 2} update failed: {e}")
         if changes:
             st.success(f"✅ {changes} row(s) updated.")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.info("No changes to apply.")
