@@ -3,7 +3,7 @@ import streamlit as st
 
 from utils.google_sheets import load_sheet_as_df
 from utils.google_drive import generate_drive_link
-from utils.config import SHEET_ID, PROPERTIES, STATUS_OPTIONS
+from utils.config import SHEET_ID, PROPERTIES
 
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -46,6 +46,7 @@ def load_and_prepare_data(view_type: str, year: str):
         )
         df["Rental Year"] = df["Rental Start Date"].dt.year
         df["Amount"] = df["Amount"].astype(str)
+
         return df, skipped, "Rental Start Date"
 
     else:
@@ -56,23 +57,21 @@ def load_and_prepare_data(view_type: str, year: str):
 def get_filters_ui(df: pd.DataFrame, view_type: str, year: str):
     props = st.multiselect("Property", PROPERTIES, default=PROPERTIES)
 
-    # Dynamically get Category or Income Source
+    cats = []
     if view_type == "Income" and "Income Source" in df.columns:
-        cats = df["Income Source"].dropna().unique().tolist()
-        cats = st.multiselect("Income Source", cats, default=cats)
+        all_sources = sorted(df["Income Source"].dropna().unique())
+        cats = st.multiselect("Income Source", all_sources, default=all_sources)
     elif view_type == "Expense" and "Category" in df.columns:
-        cats = df["Category"].dropna().unique().tolist()
-        cats = st.multiselect("Category", cats, default=cats)
-    else:
-        cats = []
+        all_cats = sorted(df["Category"].dropna().unique())
+        cats = st.multiselect("Category", all_cats, default=all_cats)
 
-    # Dynamically get Status options
     stats = []
     if view_type == "Income" and "Status" in df.columns:
-        stats = st.multiselect("Status", STATUS_OPTIONS, default=STATUS_OPTIONS)
+        all_stats = sorted(df["Status"].dropna().unique())
+        stats = st.multiselect("Status", all_stats, default=all_stats)
     elif view_type == "Expense" and "Complete" in df.columns:
-        unique_stats = df["Complete"].dropna().unique().tolist()
-        stats = st.multiselect("Status", unique_stats, default=unique_stats)
+        all_stats = sorted(df["Complete"].dropna().unique())
+        stats = st.multiselect("Status", all_stats, default=all_stats)
 
     default_start = pd.to_datetime(f"{year}-01-01")
     default_end = pd.Timestamp.now()
@@ -87,7 +86,10 @@ def get_filters_ui(df: pd.DataFrame, view_type: str, year: str):
 
 
 def apply_filters(df: pd.DataFrame, filters: dict, date_col: str) -> pd.DataFrame:
-    mask = df["Property"].isin(filters["props"])
+    mask = pd.Series(True, index=df.index)
+
+    if "Property" in df.columns and filters["props"]:
+        mask &= df["Property"].isin(filters["props"])
 
     if filters["cats"]:
         if "Category" in df.columns:
@@ -106,13 +108,14 @@ def apply_filters(df: pd.DataFrame, filters: dict, date_col: str) -> pd.DataFram
         start, end = pd.to_datetime(filters["date_range"][0]), pd.to_datetime(filters["date_range"][1])
         mask &= df[date_col].between(start, end)
 
-    return df.loc[mask]
+    return df[mask]
 
 
 def show_data_table(filtered: pd.DataFrame, view_type: str, year: str, skipped: pd.DataFrame):
     if "Receipt Link" in filtered.columns:
         filtered["Receipt Link"] = filtered["Receipt Link"].apply(
-            lambda fid: f'<a href="{generate_drive_link(fid)}" target="_blank">📄 View</a>' if pd.notna(fid) and fid else ""
+            lambda fid: f'<a href="{generate_drive_link(fid)}" target="_blank">📄 View</a>'
+            if pd.notna(fid) and fid else ""
         )
 
     st.markdown(f"**{len(filtered)} entries found**")
