@@ -2,12 +2,13 @@ import streamlit as st
 from utils.export_helpers import (
     load_and_process_data,
     generate_summary,
-    generate_excel_export
+    generate_excel_export,
+    generate_zip_export
 )
 
 def show():
     st.title("📁 Export Financial Data")
-    st.caption("Download income, expenses, and summary as a single Excel file for taxes or accounting.")
+    st.caption("Download income, expenses, and summary for your accountant or tax records.")
 
     year = st.radio("Select Year", ["2025", "2026"], horizontal=True)
 
@@ -26,6 +27,15 @@ def show():
             file_name=f"{year}_financial_export.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+        with st.expander("📦 Need individual CSV files?"):
+            zip_file = generate_zip_export(income_df, expense_df, summary_df, year)
+            st.download_button(
+                label="Download ZIP of CSVs",
+                data=zip_file,
+                file_name=f"{year}_financial_export.zip",
+                mime="application/zip"
+            )
 
         with st.expander("📊 Preview Summary"):
             st.dataframe(summary_df, use_container_width=True)
