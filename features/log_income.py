@@ -51,6 +51,6 @@ def show_income_form():
                 )
                 log_income(sheet_name, row_dict)
                 st.success("✅ Income logged successfully.")
-                st.experimental_rerun()  # 🔁 Force refresh so new row appears in Renter Activity
+                st.rerun()  # 🔁 Force refresh so new row appears in Renter Activity
     except Exception as e:
         st.error(f"❌ Income form crashed: {e}")
