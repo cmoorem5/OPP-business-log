@@ -1,9 +1,9 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 from utils.google_sheets import load_sheet_as_df, update_row_in_sheet
 from utils.config import SHEET_ID, STATUS_OPTIONS
 
-REQUIRED_COLUMNS = ["Check-in", "Renter Name", "Amount", "Status", "Email", "Location"]
+REQUIRED_COLUMNS = ["Check-in", "Name", "Amount Received", "Status", "Email", "City"]
 
 def load_renter_data(sheet_name: str) -> pd.DataFrame:
     try:
@@ -38,10 +38,10 @@ def edit_renter_form(df: pd.DataFrame, sheet_name: str):
         row_index = st.number_input("Row index to edit (starting at 0)", min_value=0, max_value=len(df) - 1, step=1)
         selected = df.iloc[row_index]
 
-        renter_name = st.text_input("Renter Name", selected.get("Renter Name", ""))
+        renter_name = st.text_input("Renter Name", selected.get("Name", ""))
         email = st.text_input("Email", selected.get("Email", ""))
-        location = st.text_input("Location", selected.get("Location", ""))
-        amount = st.number_input("Amount", value=float(selected.get("Amount", 0.0)), step=10.0)
+        location = st.text_input("City", selected.get("City", ""))
+        amount = st.number_input("Amount Received", value=float(selected.get("Amount Received", 0.0)), step=10.0)
 
         current_status = selected.get("Status", STATUS_OPTIONS[1])
         status_index = STATUS_OPTIONS.index(current_status) if current_status in STATUS_OPTIONS else 1
@@ -51,10 +51,10 @@ def edit_renter_form(df: pd.DataFrame, sheet_name: str):
         if submitted:
             updated_row = selected.to_dict()
             updated_row.update({
-                "Renter Name": renter_name,
+                "Name": renter_name,
                 "Email": email,
-                "Location": location,
-                "Amount": amount,
+                "City": location,
+                "Amount Received": amount,
                 "Status": status
             })
 
