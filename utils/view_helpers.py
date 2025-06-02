@@ -1,9 +1,9 @@
 import pandas as pd
 import streamlit as st
+
 from utils.google_sheets import load_sheet_as_df
 from utils.google_drive import generate_drive_link
-from utils.config import SHEET_ID
-
+from utils.config import SHEET_ID, PROPERTIES
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[:, df.columns.str.strip() != ""]
@@ -15,10 +15,10 @@ def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     df.columns = new_cols
     return df
 
-
 def load_and_prepare_data(view_type, year):
     if view_type == "Income":
         df = _clean_df(load_sheet_as_df(SHEET_ID, f"{year} OPP Income"))
+
         if "Amount Received" in df.columns:
             df.rename(columns={"Amount Received": "Amount"}, inplace=True)
         if "Check-in" not in df.columns:
@@ -44,16 +44,16 @@ def load_and_prepare_data(view_type, year):
         df = _clean_df(load_sheet_as_df(SHEET_ID, f"{year} OPP Expenses"))
         return df, pd.DataFrame(), "Date"
 
-
 def get_filters_ui(df, view_type, year):
-    props = st.multiselect("Property", df["Property"].dropna().unique().tolist(), default=df["Property"].dropna().unique().tolist())
+    props = st.multiselect("Property", PROPERTIES, default=PROPERTIES)
     cats = st.multiselect("Category", df["Category"].dropna().unique().tolist(), default=df["Category"].dropna().unique().tolist()) if "Category" in df.columns else []
     stats = st.multiselect("Status", df["Complete"].dropna().unique().tolist(), default=df["Complete"].dropna().unique().tolist()) if "Complete" in df.columns else []
+
     default_start = pd.to_datetime(f"{year}-01-01")
     default_end = pd.Timestamp.now()
     date_range = st.date_input("Date Range", [default_start, default_end], key=f"date_range_{view_type.lower()}")
-    return {"props": props, "cats": cats, "stats": stats, "date_range": date_range}
 
+    return {"props": props, "cats": cats, "stats": stats, "date_range": date_range}
 
 def apply_filters(df, filters, date_col):
     mask = df["Property"].isin(filters["props"])
@@ -66,7 +66,6 @@ def apply_filters(df, filters, date_col):
         start, end = pd.to_datetime(filters["date_range"][0]), pd.to_datetime(filters["date_range"][1])
         mask &= df[date_col].between(start, end)
     return df.loc[mask]
-
 
 def show_data_table(filtered, view_type, year, skipped):
     if "Receipt Link" in filtered.columns:
