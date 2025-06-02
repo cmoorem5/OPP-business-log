@@ -63,4 +63,8 @@ routes = {
     "Data Export": export
 }
 
-routes[page].show()
+# --- Load Selected Page with Error Catch ---
+try:
+    routes[page].show()
+except Exception as e:
+    st.error(f"❌ Page load failed: {type(e).__name__} — {e}")
