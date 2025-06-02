@@ -1,4 +1,4 @@
-import streamlit as st
+xpensesimport streamlit as st
 from PIL import Image
 from datetime import datetime
 from features import dashboard, log_entry, view_entries, export, renter_activity
@@ -59,7 +59,7 @@ routes = {
     "Dashboard": dashboard,
     "Rental Entry": log_entry,
     "Renter Activity": renter_activity,
-    "View Entries": view_entries,
+    "View Expenses": features.view_expenses,
     "Data Export": export
 }
 
