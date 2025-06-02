@@ -79,7 +79,7 @@ def edit_renter_form(df: pd.DataFrame, sheet_name: str):
             })
 
             try:
-                update_row_in_sheet(SHEET_ID, sheet_name, row_index + 2, updated_row)
-                st.success("✅ Entry updated. Refresh to view changes.")
+                update_row_in_sheet(SHEET_ID, sheet_name, row_index)  # ✅ fixed: no +2
+                st.success(f"✅ Entry updated in row {row_index + 2}. Refresh to view changes.")
             except Exception as e:
                 st.error(f"❌ Failed to update entry: {e}")
