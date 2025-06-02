@@ -5,11 +5,9 @@ from utils.google_sheets import append_row_to_sheet
 from utils.google_drive import upload_file_to_drive
 from utils.config import SHEET_ID, get_drive_folder_id
 
-
 def sanitize_filename(filename: str) -> str:
     name = filename.strip().lower().replace(" ", "_")
     return re.sub(r"[^a-zA-Z0-9_.-]", "", name)
-
 
 def show_income_form():
     with st.form("income_form", clear_on_submit=True):
@@ -26,13 +24,14 @@ def show_income_form():
 
         renter_name = st.text_input("Renter Name")
         email = st.text_input("Renter Email")
+        phone = st.text_input("Phone Number")  # 🔹 New field
         origin = st.text_input("Where are they from?")
         notes = st.text_area("Notes (optional)")
 
         if st.form_submit_button("Log Income"):
             headers = [
                 "Month", "Date", "Purchaser", "Item", "Property", "Category",
-                "Amount", "Comments", "Receipt Link", "Email", "Origin",
+                "Amount", "Comments", "Receipt Link", "Email", "Phone", "Origin",
                 "Check-in", "Check-out", "Payment Status", "Paid", "Total", "Balance"
             ]
             values = [
@@ -46,6 +45,7 @@ def show_income_form():
                 notes,
                 "",
                 email,
+                phone,  # 🔹 Inserted here
                 origin,
                 check_in.strftime("%Y-%m-%d"),
                 check_out.strftime("%Y-%m-%d"),
@@ -57,7 +57,6 @@ def show_income_form():
             row_dict = dict(zip(headers, values))
             append_row_to_sheet(SHEET_ID, sheet_name, row_dict)
             st.success("✅ Income logged successfully.")
-
 
 def show_expense_form():
     with st.form("expense_form", clear_on_submit=True):
