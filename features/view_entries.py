@@ -1,11 +1,11 @@
 import streamlit as st
-from .view_helpers import (
+from utils.view_helpers import (
     load_and_prepare_data,
     get_filters_ui,
     apply_filters,
     show_data_table,
-    show_summary_charts
 )
+from utils.view_charts import show_summary_charts
 
 
 def show():
