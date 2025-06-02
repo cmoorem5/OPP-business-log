@@ -15,7 +15,7 @@ def show_income_form():
         check_in, check_out = rental_dates
 
         amount = st.number_input("Amount Received", min_value=0.0, step=10.0)
-        payment_type = st.selectbox("Payment Type", INCOME_SOURCES)
+        income_source = st.selectbox("Income Source", INCOME_SOURCES)
         status = st.selectbox("Payment Status", PAYMENT_STATUS)
 
         renter_name = st.text_input("Renter Name")
@@ -26,7 +26,7 @@ def show_income_form():
 
         if st.form_submit_button("Log Income"):
             row_dict = build_income_payload(
-                booking_date, check_in, check_out, amount, payment_type,
+                booking_date, check_in, check_out, amount, income_source,
                 status, renter_name, email, phone, origin, notes
             )
             log_income(sheet_name, row_dict)
