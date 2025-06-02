@@ -26,7 +26,7 @@ def show_income_form():
             state = st.text_input("State")
             zip_code = st.text_input("Zip Code")
 
-            property_name = st.selectbox("Property", ["Hooked on Islamorada"])
+            property_name = st.selectbox("Property", ["Islamorada", "Standish"])
             income_source = st.selectbox("Income Source", INCOME_SOURCES)
             notes = st.text_area("Notes (optional)")
 
