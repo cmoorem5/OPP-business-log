@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import date
 
 from utils.log_helpers import build_income_payload, log_income
-from utils.dropdown_config import INCOME_YEARS, INCOME_SOURCES, PAYMENT_STATUS
+from utils.config import YEARS as INCOME_YEARS, INCOME_SOURCES, PAYMENT_STATUS, PROPERTIES
 
 def show_income_form():
     try:
@@ -26,7 +26,7 @@ def show_income_form():
             state = st.text_input("State")
             zip_code = st.text_input("Zip Code")
 
-            property_name = st.selectbox("Property", ["Islamorada", "Standish"])
+            property_name = st.selectbox("Property", PROPERTIES)
             income_source = st.selectbox("Income Source", INCOME_SOURCES)
             notes = st.text_area("Notes (optional)")
 
@@ -51,6 +51,6 @@ def show_income_form():
                 )
                 log_income(sheet_name, row_dict)
                 st.success("✅ Income logged successfully.")
-                st.rerun()  # 🔁 Force refresh so new row appears in Renter Activity
+                st.rerun()
     except Exception as e:
         st.error(f"❌ Income form crashed: {e}")
