@@ -2,31 +2,37 @@ import streamlit as st
 from datetime import datetime
 from utils.dashboard_helpers import (
     load_dashboard_data,
-    build_financial_summary,
-    render_property_charts,
+    calculate_summary_metrics,
+    plot_monthly_financials,
+    plot_outstanding_chart
 )
 
 def show():
     st.title("📊 Finance Dashboard")
 
-    # Year selector
     years = st.secrets["years"]
     current_year = str(datetime.now().year)
-    default_index = years.index(current_year) if current_year in years else 0
-    selected_year = st.selectbox("Select Year", years, index=default_index)
+    selected_year = st.selectbox("Select Year", years, index=years.index(current_year))
 
-    # Load + summarize
-    df_income, df_expense = load_dashboard_data(selected_year)
-    summary = build_financial_summary(df_income, df_expense)
+    properties = ["Islamorada", "Standish"]
+    selected_property = st.selectbox("Select Property", properties)
 
-    # CSV Export
-    csv = summary.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        "⬇️ Download Summary CSV",
-        data=csv,
-        file_name=f"{selected_year}_summary.csv",
-        mime="text/csv",
-    )
+    df_income, df_expense = load_dashboard_data(selected_year, selected_property)
 
-    # Charts
-    render_property_charts(summary)
+    if df_income.empty and df_expense.empty:
+        st.warning("No financial data found for this property/year.")
+        return
+
+    # Metrics
+    total_received, total_due, total_expenses, net_profit = calculate_summary_metrics(df_income, df_expense)
+
+    st.columns(4)[0].metric("✅ Received", f"${total_received:,.0f}")
+    st.columns(4)[1].metric("🕗 Still Owed", f"${total_due:,.0f}")
+    st.columns(4)[2].metric("💸 Expenses", f"${total_expenses:,.0f}")
+    st.columns(4)[3].metric("📈 Profit", f"${net_profit:,.0f}")
+
+    # Financial Graphs
+    plot_monthly_financials(df_income, df_expense)
+
+    with st.expander("📉 What Is Still Owed"):
+        plot_outstanding_chart(df_income)
