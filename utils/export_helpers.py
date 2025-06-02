@@ -1,5 +1,6 @@
 import pandas as pd
 import io
+import zipfile
 
 from utils.google_sheets import load_sheet_as_df
 from utils.config import SHEET_ID
@@ -48,3 +49,16 @@ def generate_excel_export(income_df, expense_df, summary_df=None):
             summary_df.to_excel(writer, sheet_name="Summary", index=False)
     output.seek(0)
     return output
+
+
+def generate_zip_export(income_df, expense_df, summary_df, year):
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        if not income_df.empty:
+            zip_file.writestr(f"{year}_Income.csv", income_df.to_csv(index=False))
+        if not expense_df.empty:
+            zip_file.writestr(f"{year}_Expenses.csv", expense_df.to_csv(index=False))
+        if summary_df is not None:
+            zip_file.writestr(f"{year}_Summary.csv", summary_df.to_csv(index=False))
+    buffer.seek(0)
+    return buffer
