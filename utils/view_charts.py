@@ -4,16 +4,12 @@ import matplotlib.pyplot as plt
 
 def show_summary_charts(filtered: pd.DataFrame, view_type: str, date_col: str):
     with st.expander("📊 Summary Charts", expanded=False):
-        if view_type == "Income":
-            amount_col = "Amount Received"
-        else:
-            amount_col = "Amount"
-
+        amount_col = "Amount Received" if view_type == "Income" else "Amount"
         if amount_col not in filtered.columns:
-            st.warning(f"❌ '{amount_col}' column not found.")
+            st.error(f"❌ '{amount_col}' column not found.")
             return
 
-        # Normalize to numeric
+        # Convert to numeric
         filtered["Amount (raw)"] = pd.to_numeric(
             filtered[amount_col]
             .astype(str)
@@ -22,19 +18,14 @@ def show_summary_charts(filtered: pd.DataFrame, view_type: str, date_col: str):
             errors="coerce"
         )
 
-        valid_df = filtered.dropna(subset=["Amount (raw)"])
-        if valid_df.empty:
+        if filtered["Amount (raw)"].dropna().empty:
             st.warning("⚠️ No valid numeric data available to display charts.")
             return
 
-        # Extract month
-        if view_type == "Income":
-            valid_df["Month"] = pd.to_datetime(valid_df["Check-in"], errors="coerce").dt.strftime("%B")
-        else:
-            valid_df["Month"] = pd.to_datetime(valid_df[date_col], errors="coerce").dt.strftime("%B")
-
-        valid_df["Month"] = pd.Categorical(
-            valid_df["Month"],
+        # Month extraction
+        filtered["Month"] = pd.to_datetime(filtered[date_col], errors="coerce").dt.strftime("%B")
+        filtered["Month"] = pd.Categorical(
+            filtered["Month"],
             categories=[
                 "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"
@@ -42,18 +33,19 @@ def show_summary_charts(filtered: pd.DataFrame, view_type: str, date_col: str):
             ordered=True
         )
 
-        # --- Monthly Totals Chart ---
-        month_totals = (
-            valid_df.groupby("Month")["Amount (raw)"]
+        # Monthly totals
+        monthly_totals = (
+            filtered.groupby("Month")["Amount (raw)"]
             .sum()
             .dropna()
         )
-        fig1, ax1 = plt.subplots(figsize=(10, 4))
-        ax1.bar(month_totals.index, month_totals.values)
-        ax1.set_title("Total by Month")
-        ax1.set_ylabel("Amount ($)")
-        for i, v in enumerate(month_totals.values):
-            ax1.text(i, v, f"${v:,.0f}", ha='center', va='bottom', fontsize=8)
+
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.bar(monthly_totals.index, monthly_totals.values)
+        ax.set_title("Total by Month")
+        ax.set_ylabel("Amount ($)")
+        for i, v in enumerate(monthly_totals.values):
+            ax.text(i, v, f"${v:,.0f}", ha='center', va='bottom', fontsize=8)
         plt.xticks(rotation=45)
         plt.tight_layout()
-        st.pyplot(fig1)
+        st.pyplot(fig)
