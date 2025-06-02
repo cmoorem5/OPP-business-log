@@ -22,8 +22,10 @@ def load_and_prepare_data(view_type: str, year: str):
     if view_type == "Income":
         df = _clean_df(load_sheet_as_df(SHEET_ID, f"{year} OPP Income"))
 
-        if "Amount Received" not in df.columns:
-            st.error("❌ Missing 'Amount Received' column in Income sheet.")
+        if "Amount Received" in df.columns:
+            df.rename(columns={"Amount Received": "Amount"}, inplace=True)
+        elif "Amount" not in df.columns:
+            st.error("❌ Missing 'Amount' column.")
             return pd.DataFrame(), pd.DataFrame(), None
 
         if "Check-in" not in df.columns:
@@ -43,22 +45,28 @@ def load_and_prepare_data(view_type: str, year: str):
             ordered=True
         )
         df["Rental Year"] = df["Rental Start Date"].dt.year
+        df["Amount"] = df["Amount"].astype(str)
         return df, skipped, "Rental Start Date"
 
     else:
         df = _clean_df(load_sheet_as_df(SHEET_ID, f"{year} OPP Expenses"))
-        skipped = pd.DataFrame()
-        return df, skipped, "Date"
+        return df, pd.DataFrame(), "Date"
 
 
 def get_filters_ui(df: pd.DataFrame, view_type: str, year: str):
     props = st.multiselect("Property", PROPERTIES, default=PROPERTIES)
 
-    cats = []
-    if "Category" in df.columns:
-        unique_cats = df["Category"].dropna().unique().tolist()
-        cats = st.multiselect("Category", unique_cats, default=unique_cats)
+    # Dynamically get Category or Income Source
+    if view_type == "Income" and "Income Source" in df.columns:
+        cats = df["Income Source"].dropna().unique().tolist()
+        cats = st.multiselect("Income Source", cats, default=cats)
+    elif view_type == "Expense" and "Category" in df.columns:
+        cats = df["Category"].dropna().unique().tolist()
+        cats = st.multiselect("Category", cats, default=cats)
+    else:
+        cats = []
 
+    # Dynamically get Status options
     stats = []
     if view_type == "Income" and "Status" in df.columns:
         stats = st.multiselect("Status", STATUS_OPTIONS, default=STATUS_OPTIONS)
@@ -81,8 +89,11 @@ def get_filters_ui(df: pd.DataFrame, view_type: str, year: str):
 def apply_filters(df: pd.DataFrame, filters: dict, date_col: str) -> pd.DataFrame:
     mask = df["Property"].isin(filters["props"])
 
-    if filters["cats"] and "Category" in df.columns:
-        mask &= df["Category"].isin(filters["cats"])
+    if filters["cats"]:
+        if "Category" in df.columns:
+            mask &= df["Category"].isin(filters["cats"])
+        elif "Income Source" in df.columns:
+            mask &= df["Income Source"].isin(filters["cats"])
 
     if filters["stats"]:
         if "Status" in df.columns:
