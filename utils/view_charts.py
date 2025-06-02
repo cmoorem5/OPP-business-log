@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
+MONTH_ORDER = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+]
 
 def show_summary_charts(filtered, view_type, date_col):
     with st.expander("📊 Summary Charts", expanded=False):
@@ -9,6 +13,7 @@ def show_summary_charts(filtered, view_type, date_col):
             st.warning("No 'Amount' column found in data.")
             return
 
+        # Clean and parse amount column
         filtered["Amount (raw)"] = pd.to_numeric(
             filtered["Amount"].replace(r'[\$,]', '', regex=True),
             errors="coerce"
@@ -18,7 +23,7 @@ def show_summary_charts(filtered, view_type, date_col):
             st.warning("⚠️ No valid numeric data available to display charts.")
             return
 
-        # Month parsing
+        # Month extraction
         if view_type == "Income":
             if "Check-in" not in filtered.columns:
                 st.warning("⚠️ 'Check-in' column not found.")
@@ -27,21 +32,10 @@ def show_summary_charts(filtered, view_type, date_col):
         else:
             filtered["Month"] = pd.to_datetime(filtered[date_col], errors="coerce").dt.strftime("%B")
 
-        filtered["Month"] = pd.Categorical(
-            filtered["Month"],
-            categories=[
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"
-            ],
-            ordered=True
-        )
+        filtered["Month"] = pd.Categorical(filtered["Month"], categories=MONTH_ORDER, ordered=True)
 
-        # --- Monthly Totals ---
-        month_totals = (
-            filtered.groupby("Month")["Amount (raw)"]
-            .sum()
-            .dropna()
-        )
+        # --- Total by Month ---
+        month_totals = filtered.groupby("Month")["Amount (raw)"].sum().dropna()
         fig1, ax1 = plt.subplots(figsize=(10, 4))
         ax1.bar(month_totals.index, month_totals.values)
         ax1.set_title("Total by Month")
@@ -52,13 +46,9 @@ def show_summary_charts(filtered, view_type, date_col):
         plt.tight_layout()
         st.pyplot(fig1)
 
-        # --- Property Totals ---
+        # --- Total by Property ---
         if "Property" in filtered.columns:
-            prop_totals = (
-                filtered.groupby("Property")["Amount (raw)"]
-                .sum()
-                .sort_values(ascending=False)
-            )
+            prop_totals = filtered.groupby("Property")["Amount (raw)"].sum().sort_values(ascending=False)
             fig2, ax2 = plt.subplots(figsize=(8, 4))
             ax2.bar(prop_totals.index, prop_totals.values)
             ax2.set_title("Total by Property")
@@ -69,13 +59,9 @@ def show_summary_charts(filtered, view_type, date_col):
             plt.tight_layout()
             st.pyplot(fig2)
 
-        # --- Category Pie Chart ---
+        # --- Category Breakdown ---
         if "Category" in filtered.columns:
-            cat_totals = (
-                filtered.groupby("Category")["Amount (raw)"]
-                .sum()
-                .sort_values(ascending=False)
-            )
+            cat_totals = filtered.groupby("Category")["Amount (raw)"].sum().sort_values(ascending=False)
             if len(cat_totals) > 6:
                 top = cat_totals[:6]
                 other_sum = cat_totals[6:].sum()
@@ -95,4 +81,3 @@ def show_summary_charts(filtered, view_type, date_col):
             ax3.axis("equal")
             plt.tight_layout()
             st.pyplot(fig3)
-
