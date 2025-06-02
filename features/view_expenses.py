@@ -1,79 +1,61 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.ticker import StrMethodFormatter
+import matplotlib.ticker as ticker
 
 from utils.google_sheets import load_sheet_as_df
-from utils.config import SHEET_ID, PROPERTIES
+from utils.config import SHEET_ID
 
 def show():
     st.title("💸 View Monthly Expenses & Income")
 
-    year = st.selectbox("Select Year", ["2025", "2026"], index=0)
-    expense_sheet = f"{year} OPP Expenses"
+    year = st.selectbox("Select Year", ["2025", "2026"])
+    property_filter = st.selectbox("Select Property", ["Islamorada", "Standish"])
     income_sheet = f"{year} OPP Income"
+    expense_sheet = f"{year} OPP Expenses"
 
-    month_order = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ]
-
+    # Load data
     try:
-        df_exp = load_sheet_as_df(SHEET_ID, expense_sheet)
-        df_inc = load_sheet_as_df(SHEET_ID, income_sheet)
-
-        df_exp["Amount"] = pd.to_numeric(df_exp["Amount"], errors="coerce").fillna(0)
-        df_exp["Month"] = df_exp["Month"].astype(str).str.strip()
-        df_exp["Category"] = df_exp["Category"].astype(str).str.strip()
-        df_exp["Property"] = df_exp["Property"].astype(str).str.strip()
-
-        df_inc["Amount Received"] = pd.to_numeric(df_inc["Amount Received"], errors="coerce").fillna(0)
-        df_inc["Income Source"] = df_inc["Income Source"].astype(str).str.strip()
-        df_inc["Property"] = df_inc["Property"].astype(str).str.strip()
-
-        for prop in PROPERTIES:
-            st.header(f"🏠 {prop}")
-
-            # --- Expenses Chart ---
-            df_prop_exp = df_exp[df_exp["Property"] == prop]
-            exp_summary = df_prop_exp.groupby(["Month", "Category"])["Amount"].sum().reset_index()
-            pivot = exp_summary.pivot(index="Month", columns="Category", values="Amount").fillna(0)
-            pivot = pivot.loc[[m for m in month_order if m in pivot.index]]
-
-            st.markdown("#### 📊 Monthly Expenses by Category")
-            if not pivot.empty:
-                fig, ax = plt.subplots(figsize=(10, 4))
-                pivot.plot(kind="bar", stacked=True, ax=ax)
-                ax.set_ylabel("Amount ($)")
-                ax.set_title(f"{prop} – Expenses by Category")
-                ax.yaxis.set_major_formatter(StrMethodFormatter("${x:,.0f}"))
-                ax.legend(title="Category", bbox_to_anchor=(1.05, 1), loc="upper left")
-                st.pyplot(fig)
-            else:
-                st.info("No expense data for this property.")
-
-            # --- Income Chart ---
-            df_prop_inc = df_inc[df_inc["Property"] == prop]
-            income_summary = (
-                df_prop_inc.groupby("Income Source")["Amount Received"]
-                .sum()
-                .reset_index()
-                .sort_values(by="Amount Received", ascending=False)
-            )
-
-            st.markdown("#### 💰 Income by Source")
-            if not income_summary.empty:
-                fig2, ax2 = plt.subplots()
-                ax2.barh(income_summary["Income Source"], income_summary["Amount Received"], color="#4CAF50")
-                ax2.set_xlabel("Amount ($)")
-                ax2.set_title(f"{prop} – Income by Source")
-                ax2.xaxis.set_major_formatter(StrMethodFormatter("${x:,.0f}"))
-                st.pyplot(fig2)
-                st.dataframe(income_summary, use_container_width=True)
-            else:
-                st.info("No income data for this property.")
-
-            st.markdown("---")
-
+        df_income = load_sheet_as_df(SHEET_ID, income_sheet)
+        df_expense = load_sheet_as_df(SHEET_ID, expense_sheet)
     except Exception as e:
         st.error(f"❌ Failed to load data: {e}")
+        return
+
+    # Standardize and clean
+    df_income["Property"] = df_income["Property"].astype(str).str.strip()
+    df_expense["Property"] = df_expense["Property"].astype(str).str.strip()
+
+    # --- EXPENSES ---
+    st.markdown("### 📊 Monthly Expenses by Category")
+    expense_data = df_expense[df_expense["Property"] == property_filter].copy()
+    if not expense_data.empty and "Amount" in expense_data.columns and "Category" in expense_data.columns:
+        expense_data["Amount"] = pd.to_numeric(expense_data["Amount"], errors="coerce").fillna(0)
+        expense_data["Category"] = expense_data["Category"].astype(str).str.strip()
+        summary_expense = expense_data.groupby("Category")["Amount"].sum().sort_values(ascending=False).reset_index()
+
+        fig, ax = plt.subplots()
+        ax.barh(summary_expense["Category"], summary_expense["Amount"], color="#FF7043")
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"${x:,.0f}"))
+        ax.set_xlabel("Total ($)")
+        ax.set_title(f"{property_filter} - Expenses by Category")
+        st.pyplot(fig)
+    else:
+        st.info("No expense data for this property.")
+
+    # --- INCOME ---
+    st.markdown("### 💰 Income by Source")
+    income_data = df_income[df_income["Property"] == property_filter].copy()
+    if not income_data.empty and "Amount Received" in income_data.columns and "Income Source" in income_data.columns:
+        income_data["Amount Received"] = pd.to_numeric(income_data["Amount Received"], errors="coerce").fillna(0)
+        income_data["Income Source"] = income_data["Income Source"].astype(str).str.strip()
+        summary_income = income_data.groupby("Income Source")["Amount Received"].sum().sort_values(ascending=False).reset_index()
+
+        fig, ax = plt.subplots()
+        ax.barh(summary_income["Income Source"], summary_income["Amount Received"], color="#4CAF50")
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"${x:,.0f}"))
+        ax.set_xlabel("Total ($)")
+        ax.set_title(f"{property_filter} - Income by Source")
+        st.pyplot(fig)
+    else:
+        st.info("No income data for this property.")
