@@ -22,8 +22,12 @@ def load_and_prepare_data(view_type: str, year: str):
     if view_type == "Income":
         df = _clean_df(load_sheet_as_df(SHEET_ID, f"{year} OPP Income"))
 
-        if "Amount" not in df.columns and "Amount Received" in df.columns:
+        # Ensure amount is renamed
+        if "Amount Received" in df.columns:
             df.rename(columns={"Amount Received": "Amount"}, inplace=True)
+        elif "Amount" not in df.columns:
+            st.error("❌ Missing 'Amount' column.")
+            return pd.DataFrame(), pd.DataFrame(), None
 
         if "Check-in" not in df.columns:
             st.error("❌ Missing 'Check-in' column in Income sheet.")
@@ -42,6 +46,10 @@ def load_and_prepare_data(view_type: str, year: str):
             ordered=True
         )
         df["Rental Year"] = df["Rental Start Date"].dt.year
+
+        # Ensure string type for chart parsing
+        df["Amount"] = df["Amount"].astype(str)
+
         return df, skipped, "Rental Start Date"
 
     else:
