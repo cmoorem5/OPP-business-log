@@ -4,7 +4,11 @@ INCOME_YEARS = ["2025", "2026"]
 
 PROPERTIES = ["Isamorada", "Standish"]
 
-INCOME_SOURCES = ["Zelle", "Check", "Cash", "Venmo", "Other"]
+INCOME_SOURCES = [ "Renter",
+    "Airbnb",
+    "VRBO",
+    "Florida Rental",
+    "FreeWheeler"]
 
 EXPENSE_CATEGORIES = [
     "Property Expense", "Furnishings & Supplies", "Guest & Operational Expenses",
