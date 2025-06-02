@@ -2,7 +2,16 @@ import streamlit as st
 from datetime import date
 
 from utils.log_helpers import build_expense_payload, log_expense
-from utils.config import YEARS as INCOME_YEARS, PROPERTIES, EXPENSE_CATEGORIES, PURCHASERS
+from utils.config import YEARS as INCOME_YEARS, PROPERTIES, EXPENSE_CATEGORIES, SHEET_ID
+from utils.google_sheets import load_sheet_as_df
+
+@st.cache_data(ttl=600)
+def get_unique_purchasers(sheet_name):
+    try:
+        df = load_sheet_as_df(SHEET_ID, sheet_name)
+        return sorted(df["Purchaser"].dropna().unique().tolist())
+    except Exception:
+        return []
 
 def show_expense_form():
     try:
@@ -10,8 +19,10 @@ def show_expense_form():
             year = st.selectbox("Log Expense To:", INCOME_YEARS, key="expense_year")
             sheet_name = f"{year} OPP Expenses"
 
+            purchasers = get_unique_purchasers(sheet_name)
+
             expense_date = st.date_input("Expense Date", date.today())
-            purchaser = st.selectbox("Purchaser", PURCHASERS)
+            purchaser = st.selectbox("Purchaser", purchasers)
             item = st.text_input("Item/Description")
             property_selected = st.selectbox("Property", PROPERTIES)
             category = st.selectbox("Category", EXPENSE_CATEGORIES)
