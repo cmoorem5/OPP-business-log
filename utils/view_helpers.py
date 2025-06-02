@@ -5,6 +5,7 @@ from utils.google_sheets import load_sheet_as_df
 from utils.google_drive import generate_drive_link
 from utils.config import SHEET_ID, PROPERTIES, STATUS_OPTIONS
 
+
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[:, df.columns.str.strip() != ""]
     counts = {}
@@ -16,10 +17,12 @@ def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
     df.columns = new_cols
     return df
 
+
 def load_and_prepare_data(view_type: str, year: str):
     if view_type == "Income":
         df = _clean_df(load_sheet_as_df(SHEET_ID, f"{year} OPP Income"))
-        if "Amount Received" in df.columns:
+
+        if "Amount" not in df.columns and "Amount Received" in df.columns:
             df.rename(columns={"Amount Received": "Amount"}, inplace=True)
 
         if "Check-in" not in df.columns:
@@ -45,16 +48,21 @@ def load_and_prepare_data(view_type: str, year: str):
         df = _clean_df(load_sheet_as_df(SHEET_ID, f"{year} OPP Expenses"))
         return df, pd.DataFrame(), "Date"
 
+
 def get_filters_ui(df: pd.DataFrame, view_type: str, year: str):
     props = st.multiselect("Property", PROPERTIES, default=PROPERTIES)
-    cats = st.multiselect("Category", df["Category"].dropna().unique().tolist(), default=df["Category"].dropna().unique().tolist()) if "Category" in df.columns else []
 
+    cats = []
+    if "Category" in df.columns:
+        unique_cats = df["Category"].dropna().unique().tolist()
+        cats = st.multiselect("Category", unique_cats, default=unique_cats)
+
+    stats = []
     if view_type == "Income" and "Status" in df.columns:
         stats = st.multiselect("Status", STATUS_OPTIONS, default=STATUS_OPTIONS)
     elif view_type == "Expense" and "Complete" in df.columns:
-        stats = st.multiselect("Status", df["Complete"].dropna().unique().tolist(), default=df["Complete"].dropna().unique().tolist())
-    else:
-        stats = []
+        unique_stats = df["Complete"].dropna().unique().tolist()
+        stats = st.multiselect("Status", unique_stats, default=unique_stats)
 
     default_start = pd.to_datetime(f"{year}-01-01")
     default_end = pd.Timestamp.now()
@@ -67,20 +75,26 @@ def get_filters_ui(df: pd.DataFrame, view_type: str, year: str):
         "date_range": date_range
     }
 
+
 def apply_filters(df: pd.DataFrame, filters: dict, date_col: str) -> pd.DataFrame:
     mask = df["Property"].isin(filters["props"])
+
     if filters["cats"] and "Category" in df.columns:
         mask &= df["Category"].isin(filters["cats"])
+
     if filters["stats"]:
         if "Status" in df.columns:
             mask &= df["Status"].isin(filters["stats"])
         elif "Complete" in df.columns:
             mask &= df["Complete"].isin(filters["stats"])
+
     if date_col in df.columns:
         df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
         start, end = pd.to_datetime(filters["date_range"][0]), pd.to_datetime(filters["date_range"][1])
         mask &= df[date_col].between(start, end)
+
     return df.loc[mask]
+
 
 def show_data_table(filtered: pd.DataFrame, view_type: str, year: str, skipped: pd.DataFrame):
     if "Receipt Link" in filtered.columns:
