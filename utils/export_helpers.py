@@ -41,12 +41,56 @@ def generate_summary(income_df: pd.DataFrame, expense_df: pd.DataFrame) -> pd.Da
 def generate_excel_export(income_df, expense_df, summary_df=None):
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        if not income_df.empty:
-            income_df.to_excel(writer, sheet_name="Income", index=False)
-        if not expense_df.empty:
-            expense_df.to_excel(writer, sheet_name="Expenses", index=False)
+        workbook = writer.book
+        bold = workbook.add_format({"bold": True})
+        currency = workbook.add_format({"num_format": "$#,##0.00"})
+        total = workbook.add_format({"bold": True, "num_format": "$#,##0.00"})
+
+        def write_df(df, sheet, currency_cols=None, add_total=False):
+            if df.empty:
+                return
+            df_out = df.copy()
+
+            # Append totals row if requested
+            if add_total and currency_cols:
+                totals = {
+                    col: df_out[col].sum() if col in currency_cols else "Total"
+                    for col in df_out.columns
+                }
+                df_out.loc[len(df_out)] = totals
+
+            df_out.to_excel(writer, sheet_name=sheet, index=False)
+            ws = writer.sheets[sheet]
+
+            for i, col in enumerate(df_out.columns):
+                col_width = max(len(str(col)), *(df_out[col].astype(str).str.len())) + 2
+                fmt = currency if currency_cols and col in currency_cols else None
+                ws.set_column(i, i, col_width, fmt)
+                ws.write(0, i, col, bold)
+
+        write_df(income_df, "Income", currency_cols=["Amount Received"])
+        write_df(expense_df, "Expenses", currency_cols=["Amount"])
         if summary_df is not None:
-            summary_df.to_excel(writer, sheet_name="Summary", index=False)
+            write_df(summary_df, "Summary", currency_cols=["Amount"])
+
+        if "Income Source" in income_df.columns:
+            income_summary = (
+                income_df.groupby("Income Source")["Amount Received"]
+                .sum()
+                .reset_index()
+                .sort_values(by="Amount Received", ascending=False)
+            )
+            write_df(income_summary, "Income by Source", currency_cols=["Amount Received"], add_total=True)
+
+        if "Category" in expense_df.columns:
+            expense_summary = (
+                expense_df.groupby("Category")["Amount"]
+                .sum()
+                .reset_index()
+                .sort_values(by="Amount", ascending=False)
+            )
+            write_df(expense_summary, "Expenses by Category", currency_cols=["Amount"], add_total=True)
+
     output.seek(0)
     return output
 
@@ -60,5 +104,32 @@ def generate_zip_export(income_df, expense_df, summary_df, year):
             zip_file.writestr(f"{year}_Expenses.csv", expense_df.to_csv(index=False))
         if summary_df is not None:
             zip_file.writestr(f"{year}_Summary.csv", summary_df.to_csv(index=False))
+
+        if "Income Source" in income_df.columns:
+            income_summary = (
+                income_df.groupby("Income Source")["Amount Received"]
+                .sum()
+                .reset_index()
+                .sort_values(by="Amount Received", ascending=False)
+            )
+            income_summary.loc[len(income_summary)] = [
+                "Total",
+                income_summary["Amount Received"].sum()
+            ]
+            zip_file.writestr(f"{year}_Income_by_Source.csv", income_summary.to_csv(index=False))
+
+        if "Category" in expense_df.columns:
+            expense_summary = (
+                expense_df.groupby("Category")["Amount"]
+                .sum()
+                .reset_index()
+                .sort_values(by="Amount", ascending=False)
+            )
+            expense_summary.loc[len(expense_summary)] = [
+                "Total",
+                expense_summary["Amount"].sum()
+            ]
+            zip_file.writestr(f"{year}_Expenses_by_Category.csv", expense_summary.to_csv(index=False))
+
     buffer.seek(0)
     return buffer
