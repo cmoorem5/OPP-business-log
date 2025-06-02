@@ -70,29 +70,29 @@ def show_summary_charts(filtered, view_type, date_col):
             st.pyplot(fig2)
 
         # --- Category Pie Chart ---
-if "Category" in filtered.columns:
-    cat_totals = (
-        filtered.groupby("Category")["Amount (raw)"]
-        .sum()
-        .sort_values(ascending=False)
-    )
-    if len(cat_totals) > 6:
-        top = cat_totals[:6]
-        other_sum = cat_totals[6:].sum()
-        cat_totals = pd.concat([top, pd.Series({"Other": other_sum})])
+        if "Category" in filtered.columns:
+            cat_totals = (
+                filtered.groupby("Category")["Amount (raw)"]
+                .sum()
+                .sort_values(ascending=False)
+            )
+            if len(cat_totals) > 6:
+                top = cat_totals[:6]
+                other_sum = cat_totals[6:].sum()
+                cat_totals = pd.concat([top, pd.Series({"Other": other_sum})])
 
-    fig3, ax3 = plt.subplots()
-    wedges, texts, autotexts = ax3.pie(
-        cat_totals.values,
-        labels=cat_totals.index,
-        autopct=lambda p: f"${p * cat_totals.sum() / 100:,.0f}",
-        startangle=90,
-        wedgeprops=dict(width=0.4, edgecolor='w')
-    )
-    for text in texts + autotexts:
-        text.set_fontsize(8)
-    ax3.set_title("Category Breakdown")
-    ax3.axis("equal")
-    plt.tight_layout()
-    st.pyplot(fig3)
+            fig3, ax3 = plt.subplots()
+            wedges, texts, autotexts = ax3.pie(
+                cat_totals.values,
+                labels=cat_totals.index,
+                autopct=lambda p: f"${p * cat_totals.sum() / 100:,.0f}",
+                startangle=90,
+                wedgeprops=dict(width=0.4, edgecolor='w')
+            )
+            for text in texts + autotexts:
+                text.set_fontsize(8)
+            ax3.set_title("Category Breakdown")
+            ax3.axis("equal")
+            plt.tight_layout()
+            st.pyplot(fig3)
 
