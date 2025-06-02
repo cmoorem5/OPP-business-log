@@ -19,7 +19,7 @@ def show_summary_charts(filtered, view_type, date_col):
             st.warning("⚠️ No valid numeric data available to display charts.")
             return
 
-        # Set month key
+        # Month label setup
         if view_type == "Income":
             if "Check-in" not in filtered.columns:
                 st.warning("⚠️ 'Check-in' column not found.")
@@ -28,19 +28,18 @@ def show_summary_charts(filtered, view_type, date_col):
         else:
             filtered["Month"] = pd.to_datetime(filtered[date_col], errors="coerce").dt.strftime("%B")
 
-        filtered["Month"] = pd.Categorical(
-            filtered["Month"],
-            categories=[
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"
-            ],
-            ordered=True
-        )
+        month_order = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ]
+
+        filtered["Month"] = pd.Categorical(filtered["Month"], categories=month_order, ordered=True)
 
         # Monthly totals
         month_totals = (
             filtered.groupby("Month")["Amount (raw)"]
             .sum()
+            .reindex(month_order)
             .dropna()
         )
 
@@ -48,8 +47,12 @@ def show_summary_charts(filtered, view_type, date_col):
         ax1.bar(month_totals.index, month_totals.values)
         ax1.set_title("Total by Month")
         ax1.set_ylabel("Amount ($)")
+        ax1.set_xlabel("Month")
+        ax1.set_xticks(range(len(month_totals.index)))
+        ax1.set_xticklabels(month_totals.index, rotation=45, ha='right')
         for i, v in enumerate(month_totals.values):
             ax1.text(i, v, f"${v:,.0f}", ha='center', va='bottom')
+        plt.tight_layout()
         st.pyplot(fig1)
 
         # Property totals
@@ -63,8 +66,12 @@ def show_summary_charts(filtered, view_type, date_col):
             ax2.bar(prop_totals.index, prop_totals.values)
             ax2.set_title("Total by Property")
             ax2.set_ylabel("Amount ($)")
+            ax2.set_xlabel("Property")
+            ax2.set_xticks(range(len(prop_totals.index)))
+            ax2.set_xticklabels(prop_totals.index, rotation=45, ha='right')
             for i, v in enumerate(prop_totals.values):
                 ax2.text(i, v, f"${v:,.0f}", ha='center', va='bottom')
+            plt.tight_layout()
             st.pyplot(fig2)
 
         # Category breakdown
@@ -83,4 +90,5 @@ def show_summary_charts(filtered, view_type, date_col):
             )
             ax3.set_title("Category Breakdown")
             ax3.axis("equal")
+            plt.tight_layout()
             st.pyplot(fig3)
