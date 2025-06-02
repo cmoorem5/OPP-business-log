@@ -2,7 +2,6 @@ import streamlit as st
 from datetime import date
 
 from utils.config import SHEET_ID
-from utils.log_helpers import (
     build_income_payload,
     build_expense_payload,
     log_income,
