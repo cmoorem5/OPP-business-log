@@ -1,7 +1,7 @@
-xpensesimport streamlit as st
+import streamlit as st
 from PIL import Image
 from datetime import datetime
-from features import dashboard, log_entry, view_entries, export, renter_activity
+from features import dashboard, log_entry, export, renter_activity, view_expenses
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -45,7 +45,7 @@ page = st.sidebar.radio(
         "Dashboard",
         "Rental Entry",
         "Renter Activity",
-        "View Entries",
+        "View Expenses",
         "Data Export"
     ]
 )
@@ -59,7 +59,7 @@ routes = {
     "Dashboard": dashboard,
     "Rental Entry": log_entry,
     "Renter Activity": renter_activity,
-    "View Expenses": features.view_expenses,
+    "View Expenses": view_expenses,
     "Data Export": export
 }
 
